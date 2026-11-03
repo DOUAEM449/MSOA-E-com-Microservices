@@ -1,0 +1,134 @@
+
+import { useState } from "react";
+
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Box,
+  Container,
+  Divider,
+  Stack
+} from "@mui/material";
+
+import {
+  StorefrontOutlined,
+  ShoppingCartOutlined,
+  MenuRounded,
+  HomeOutlined,
+  Inventory2Outlined,
+  LoginOutlined
+} from "@mui/icons-material";
+
+const navigation = [
+  { label: "Home", path: "/", icon: <HomeOutlined /> },
+  { label: "Products", path: "/products", icon: <Inventory2Outlined /> },
+  { label: "Login", path: "/login", icon: <LoginOutlined /> },
+  { label: "Cart", path: "/cart", icon: <ShoppingCartOutlined /> }
+];
+
+export default function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navigate = (path) => {
+    setMobileOpen(false);
+    // React Router navigation will be added next.
+    console.log("Navigate to:", path);
+  };
+
+  return (
+    <>
+      <AppBar position="sticky" elevation={0}>
+        <Container maxWidth="lg">
+          <Toolbar disableGutters sx={{ minHeight: 70 }}>
+            <StorefrontOutlined sx={{ mr: 1 }} />
+
+            <Typography
+              variant="h6"
+              fontWeight={800}
+              sx={{ flexGrow: 1, cursor: "pointer" }}
+              onClick={() => navigate("/")}
+            >
+              MSOA Shop
+            </Typography>
+
+            {/* Desktop navigation */}
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ display: { xs: "none", md: "flex" } }}
+            >
+              {navigation.map((item) => (
+                <Button
+                  key={item.path}
+                  color="inherit"
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Stack>
+
+            {/* Mobile menu button */}
+            <IconButton
+              color="inherit"
+              aria-label="Open navigation menu"
+              onClick={() => setMobileOpen(true)}
+              sx={{ display: { xs: "flex", md: "none" } }}
+            >
+              <MenuRounded />
+            </IconButton>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
+      {/* Mobile navigation drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        sx={{ display: { xs: "block", md: "none" } }}
+        slotProps={{
+          paper: {
+            sx: { width: "min(280px, 85vw)" }
+          }
+        }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h6" fontWeight={800}>
+            MSOA Shop
+          </Typography>
+        </Box>
+
+        <Divider />
+
+        <List sx={{ px: 1 }}>
+          {navigation.map((item) => (
+            <ListItemButton
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              sx={{ borderRadius: 2, mb: 0.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+      </Drawer>
+    </>
+  );
+}

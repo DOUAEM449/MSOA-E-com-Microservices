@@ -1,6 +1,11 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  AccountCircleOutlined,
+  LogoutOutlined
+} from "@mui/icons-material";
 
 import {
   AppBar,
@@ -42,11 +47,16 @@ export default function Navbar() {
   };
 
   const { cartCount } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   const navigation = [
     { label: "Home", path: "/", icon: <HomeOutlined /> },
     { label: "Products", path: "/products", icon: <Inventory2Outlined /> },
-    { label: "Login", path: "/login", icon: <LoginOutlined /> },
     {
       label: "Orders",
       path: "/orders",
@@ -60,7 +70,23 @@ export default function Navbar() {
           <ShoppingCartOutlined />
         </Badge>
       )
-    }
+    },
+    ...(!isAuthenticated
+    ? [
+        {
+          label: "Login",
+          path: "/login",
+          icon: <LoginOutlined />
+        }
+      ]
+    : [
+        {
+          label: user?.name || "Account",
+          path: "/account",
+          icon: <AccountCircleOutlined />
+        }
+      ]),
+    
   ];
 
   return (
@@ -107,6 +133,17 @@ export default function Navbar() {
                   ) : item.label}
                 </Button>
               ))}
+
+              {isAuthenticated && (
+                <Button
+                  color="inherit"
+                  startIcon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  Logout
+                </Button>
+              )}
             </Stack>
 
             {/* Mobile menu button */}
@@ -156,6 +193,20 @@ export default function Navbar() {
               <ListItemText primary={item.label} />
             </ListItemButton>
           ))}
+          {isAuthenticated && (
+            <ListItemButton
+              color="inherit"
+              startIcon={<LogoutOutlined />}
+              onClick={handleLogout}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                <LogoutOutlined/>
+              </ListItemIcon>
+
+              <ListItemText primary={"Logout"} />
+            </ListItemButton>
+          )}
         </List>
       </Drawer>
     </>

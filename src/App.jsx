@@ -20,6 +20,7 @@ import Checkout from "./pages/Checkout";
 import Orders from './pages/Orders';
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Account from "./pages/Account";
 
 export default function App() {
   const navigate = useNavigate();
@@ -129,6 +130,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/account" element={<Account />} />
         </Route>
 
       </Routes>

@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useCart } from "../context/CartContext";
 import {
   Box,
   Container,
@@ -17,6 +18,7 @@ import { products } from "../data/products";
 export default function Products() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const { addToCart } = useCart();
 
   const categories = [
     "All",
@@ -35,8 +37,7 @@ export default function Products() {
   });
 
   const handleAddToCart = (product) => {
-    // Temporary behavior until CartContext is implemented.
-    alert(`${product.name} added to cart (demo)`);
+    addToCart(product);
   };
 
   return (

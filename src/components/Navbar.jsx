@@ -28,12 +28,9 @@ import {
   LoginOutlined
 } from "@mui/icons-material";
 
-const navigation = [
-  { label: "Home", path: "/", icon: <HomeOutlined /> },
-  { label: "Products", path: "/products", icon: <Inventory2Outlined /> },
-  { label: "Login", path: "/login", icon: <LoginOutlined /> },
-  { label: "Cart", path: "/cart", icon: <ShoppingCartOutlined /> }
-];
+import { Badge } from "@mui/material";
+import { useCart } from "../context/CartContext";
+
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,6 +40,23 @@ export default function Navbar() {
     setMobileOpen(false);
     routerNavigate(path);
   };
+
+  const { cartCount } = useCart();
+
+  const navigation = [
+    { label: "Home", path: "/", icon: <HomeOutlined /> },
+    { label: "Products", path: "/products", icon: <Inventory2Outlined /> },
+    { label: "Login", path: "/login", icon: <LoginOutlined /> },
+    {
+      label: "Cart",
+      path: "/cart",
+      icon: (
+        <Badge badgeContent={cartCount} color="error" max={99}>
+          <ShoppingCartOutlined />
+        </Badge>
+      )
+    }
+  ];
 
   return (
     <>
@@ -76,7 +90,16 @@ export default function Navbar() {
                     fontWeight: 600
                   }}
                 >
-                  {item.label}
+                  {item.path === "/cart" ? (
+                    <Badge
+                      badgeContent={cartCount}
+                      color="error"
+                      max={99}
+                      sx={{ mr: 1 }}
+                    >
+                      <ShoppingCartOutlined />
+                    </Badge>
+                  ) : item.label}
                 </Button>
               ))}
             </Stack>

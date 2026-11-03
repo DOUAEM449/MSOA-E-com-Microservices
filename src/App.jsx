@@ -19,6 +19,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from './pages/Orders';
 import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   const navigate = useNavigate();
@@ -122,9 +123,14 @@ export default function App() {
 
         <Route path="/products" element={<Products />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<Orders />} />
         <Route path="/login" element={<Login />} />
+
+        {/* Authentication required */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+        </Route>
+
       </Routes>
 
     </Box>

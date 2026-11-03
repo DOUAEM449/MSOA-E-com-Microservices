@@ -15,6 +15,7 @@ import {
 
 import Navbar from "./components/Navbar";
 import Products from "./pages/Products";
+import Cart from "./pages/Cart";
 
 export default function App() {
   const navigate = useNavigate();
@@ -117,6 +118,7 @@ export default function App() {
         />
 
         <Route path="/products" element={<Products />} />
+        <Route path="/cart" element={<Cart />} />
       </Routes>
 
     </Box>

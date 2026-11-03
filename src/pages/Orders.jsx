@@ -1,6 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import {
   Alert,
@@ -39,6 +39,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState(null);
+  const { user } = useAuth();
 
   const formatPrice = (value) =>
     `${value.toLocaleString("fr-MA")} MAD`;
@@ -46,7 +47,7 @@ export default function Orders() {
   const loadOrders = async () => {
     try {
       setError("");
-      const data = await orderService.getOrders();
+      const data = await orderService.getOrders(user.id);
 
       setOrders(
         [...data].sort(
@@ -62,8 +63,10 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    loadOrders();
-  }, []);
+    if (user?.id) {
+      loadOrders();
+    }
+  }, [user?.id]);
 
   const handleCancel = async (orderId) => {
     if (!window.confirm("Are you sure you want to cancel this order?")) {

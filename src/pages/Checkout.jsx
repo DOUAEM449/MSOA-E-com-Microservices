@@ -2,6 +2,7 @@ import { inventoryService } from "../services/inventoryService";
 import { shippingService } from "../services/shippingService";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import {
   Alert,
@@ -30,6 +31,7 @@ import { paymentService } from "../services/paymentService";
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, cartTotal, clearCart } = useCart();
+  const { user } = useAuth();
 
   const [customer, setCustomer] = useState({
     name: "",
@@ -80,7 +82,7 @@ export default function Checkout() {
       }
 
       // Ordering performs the authoritative stock reservation.
-      order = await orderService.createOrder(cart, customer);
+      order = await orderService.createOrder(cart, customer, user.id);
 
       // Payment processes the simulated transaction.
       await paymentService.processPayment(order.id, paymentMethod);

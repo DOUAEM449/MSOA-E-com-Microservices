@@ -19,8 +19,12 @@ function saveOrders() {
 
 export const orderService = {
   // GET /api/orders
-  async getOrders() {
-    return [...orders];
+  async getOrders(userId) {
+    if (!userId) {
+      throw new Error("Authentication required.");
+    }
+
+    return orders.filter((order) => order.userId === userId);
   },
 
   // GET /api/orders/{id}
@@ -29,7 +33,12 @@ export const orderService = {
   },
 
   // POST /api/orders
-  async createOrder(items, customer) {
+  async createOrder(items, customer, userId) {
+    if (!userId) {
+      throw new Error("Authentication required.");
+    }
+
+    // Keep the existing implementation...
     if (!items.length) {
       throw new Error("Cannot create an empty order.");
     }
@@ -44,6 +53,7 @@ export const orderService = {
 
     const order = {
       id: crypto.randomUUID(),
+      userId,
       customer,
       items: items.map((item) => ({
         productId: item.id,

@@ -81,7 +81,7 @@ export default function ProductCard({ product, onAddToCart }) {
           </Typography>
 
           <Chip
-            label={inStock ? "In Stock" : "Out of Stock"}
+            label={inStock ? (product.stock) + " available" : "Out of Stock"}
             color={inStock ? "success" : "error"}
             size="small"
             variant="outlined"

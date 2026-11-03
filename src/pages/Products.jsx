@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { inventoryService } from "../services/inventoryService";
+import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import {
   Box,
@@ -19,13 +19,29 @@ export default function Products() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const { addToCart } = useCart();
+  const [availableProducts, setAvailableProducts] = useState([]);
+
+  useEffect(() => {
+    async function loadProducts() {
+      const data = await Promise.all(
+        products.map(async (product) => ({
+          ...product,
+          stock: await inventoryService.getStock(product.id)
+        }))
+      );
+
+      setAvailableProducts(data);
+    }
+
+    loadProducts();
+  }, []);
 
   const categories = [
     "All",
-    ...new Set(products.map((product) => product.category))
+    ...new Set(availableProducts.map((product) => product.category))
   ];
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = availableProducts.filter((product) => {
     const matchesSearch = product.name
       .toLowerCase()
       .includes(search.toLowerCase());

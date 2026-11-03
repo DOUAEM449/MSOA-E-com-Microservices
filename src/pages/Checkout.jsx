@@ -1,4 +1,4 @@
-
+import { inventoryService } from "../services/inventoryService";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -65,7 +65,20 @@ export default function Checkout() {
     let order = null;
 
     try {
-      // Ordering creates the order and reserves stock.
+      const items = cart.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity
+      }));
+
+      const available = await inventoryService.checkAvailability(items);
+
+      if (!available) {
+        throw new Error(
+          "Some products are no longer available in the requested quantities. Please review your cart."
+        );
+      }
+
+      // Ordering performs the authoritative stock reservation.
       order = await orderService.createOrder(cart, customer);
 
       // Payment processes the simulated transaction.

@@ -22,18 +22,25 @@ function loadInventory() {
 
 let inventory = loadInventory();
 
+function refreshInventory() {
+  inventory = loadInventory();
+}
+
 function saveInventory() {
+  refreshInventory();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
 }
 
 export const inventoryService = {
   // GET /api/inventory/{productId}
   async getStock(productId) {
+    refreshInventory();
     return inventory[productId] ?? 0;
   },
 
   // POST /api/inventory/check
   async checkAvailability(items) {
+    refreshInventory();
     return items.every(
       (item) =>
         item.quantity > 0 &&
@@ -43,6 +50,7 @@ export const inventoryService = {
 
   // POST /api/inventory/reserve
   async reserve(items) {
+    refreshInventory();
     const available = await this.checkAvailability(items);
 
     if (!available) {
@@ -64,6 +72,7 @@ export const inventoryService = {
 
   // POST /api/inventory/release
   async release(items) {
+    refreshInventory();
     for (const item of items) {
       if (!(item.productId in inventory)) {
         throw new Error(`Unknown product: ${item.productId}`);

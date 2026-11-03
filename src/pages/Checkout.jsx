@@ -1,4 +1,5 @@
 import { inventoryService } from "../services/inventoryService";
+import { shippingService } from "../services/shippingService";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -83,6 +84,13 @@ export default function Checkout() {
 
       // Payment processes the simulated transaction.
       await paymentService.processPayment(order.id, paymentMethod);
+
+      // Shipping creates a shipment for the paid order.
+      await shippingService.createShipment(order.id, {
+        name: customer.name,
+        address: customer.address,
+        city: customer.city
+      });
 
       clearCart();
       setCompletedOrder(order);

@@ -22,6 +22,7 @@ import {
 } from "@mui/icons-material";
 
 import { orderService } from "../services/orderService";
+import ShipmentTracker from "../components/ShipmentTracker";
 
 const statusColors = {
   PENDING_PAYMENT: "warning",
@@ -245,6 +246,10 @@ export default function Orders() {
                           ? "Cancelling..."
                           : "Cancel Order"}
                       </Button>
+                    )}
+
+                    {order.status !== "CANCELLED" && (
+                      <ShipmentTracker orderId={order.id} />
                     )}
                   </Stack>
                 </Paper>

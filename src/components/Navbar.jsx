@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   AppBar,
@@ -36,11 +37,11 @@ const navigation = [
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-
+  const routerNavigate = useNavigate();
+  
   const navigate = (path) => {
     setMobileOpen(false);
-    // React Router navigation will be added next.
-    console.log("Navigate to:", path);
+    routerNavigate(path);
   };
 
   return (

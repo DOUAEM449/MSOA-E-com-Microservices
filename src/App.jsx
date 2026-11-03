@@ -16,6 +16,7 @@ import {
 import Navbar from "./components/Navbar";
 import Products from "./pages/Products";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 
 export default function App() {
   const navigate = useNavigate();
@@ -119,6 +120,7 @@ export default function App() {
 
         <Route path="/products" element={<Products />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
       </Routes>
 
     </Box>

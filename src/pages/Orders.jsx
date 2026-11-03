@@ -138,10 +138,7 @@ export default function Orders() {
         ) : (
           <Stack spacing={3}>
             {orders.map((order) => {
-              const canCancel = [
-                "PENDING_PAYMENT",
-                "PAID"
-              ].includes(order.status);
+              const canCancel = order.status === "PENDING_PAYMENT";
 
               return (
                 <Paper
@@ -181,41 +178,55 @@ export default function Orders() {
 
                   <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
                     {order.items.map((item) => (
-                      <Stack
-                        key={item.productId}
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="flex-start"
-                        spacing={2}
-                      >
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={600}>
-                            {item.name}
-                          </Typography>
+                      
 
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                          >
-                            Quantity: {item.quantity}
-                          </Typography>
-                        </Box>
+<Box
+  key={item.productId}
+  sx={{
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    alignItems: "center",
+    gap: 2,
+    width: "100%"
+  }}
+>
+  <Box sx={{ minWidth: 0, textAlign: "left" }}>
+    <Typography fontWeight={900} 
+      color="text.primary"
+    >
+      {item.name}
+    </Typography>
 
-                        <Typography
-                          fontWeight={600}
-                          sx={{ textAlign: "right", flexShrink: 0 }}
-                        >
-                          {formatPrice(item.price * item.quantity)}
-                        </Typography>
-                      </Stack>
+    <Typography
+      variant="body2"
+      color="text.secondary"
+    >
+      Quantity: {item.quantity}
+    </Typography>
+  </Box>
+
+  <Typography
+    fontWeight={600}
+    sx={{
+      textAlign: "right",
+      whiteSpace: "nowrap"
+    }}
+  >
+    {formatPrice(item.price * item.quantity)}
+  </Typography>
+</Box>
+
+
                     ))}
 
                     <Divider />
 
                     <Stack
                       direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
+                      sx={{
+                        justifyContent: { xs: "space-between", sm: "flex-end" },
+                        alignItems: { xs: "flex-start", sm: "center" }
+                      }}
                       spacing={2}
                     >
                       <Typography fontWeight={800}>

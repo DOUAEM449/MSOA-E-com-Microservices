@@ -14,6 +14,7 @@ import {
 } from "@mui/icons-material";
 
 import Navbar from "./components/Navbar";
+import Products from "./pages/Products";
 
 export default function App() {
   const navigate = useNavigate();
@@ -114,6 +115,8 @@ export default function App() {
             </Box>
           }
         />
+
+        <Route path="/products" element={<Products />} />
       </Routes>
 
     </Box>

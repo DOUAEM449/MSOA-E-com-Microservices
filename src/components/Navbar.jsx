@@ -48,6 +48,11 @@ export default function Navbar() {
     { label: "Products", path: "/products", icon: <Inventory2Outlined /> },
     { label: "Login", path: "/login", icon: <LoginOutlined /> },
     {
+      label: "Orders",
+      path: "/orders",
+      icon: <Inventory2Outlined />
+    },
+    {
       label: "Cart",
       path: "/cart",
       icon: (

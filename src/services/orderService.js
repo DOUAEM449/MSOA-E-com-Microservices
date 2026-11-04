@@ -1,3 +1,4 @@
+import { apiRequest } from "./apiClient";
 import { shippingService } from "./shippingService";
 import { inventoryService } from "./inventoryService";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
@@ -18,25 +19,8 @@ function saveOrders() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API_URLS.ORDERS}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers
-    }
-  });
-
-  if (response.status === 404) return null;
-
-  if (!response.ok) {
-    throw new Error(`Orders API error: ${response.status}`);
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
-}
+const request = (path, options) =>
+  apiRequest(API_URLS.ORDERS, path, options);
 
 export const orderService = {
   async getOrders(userId) {
@@ -54,7 +38,12 @@ export const orderService = {
 
   async getOrderById(id) {
     if (BACKEND_MODE.ORDERS === "rest") {
-      return request(`/api/orders/${encodeURIComponent(id)}`);
+      try {
+        return await request(`/api/orders/${encodeURIComponent(id)}`);
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
     }
 
     orders = loadOrders();

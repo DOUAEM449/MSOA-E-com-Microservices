@@ -1,4 +1,4 @@
-
+import { apiRequest } from "./apiClient";
 import { products } from "../data/products";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
 
@@ -27,24 +27,8 @@ function saveInventory() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(
-    `${API_URLS.INVENTORY}${path}`,
-    {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Inventory API error: ${response.status}`);
-  }
-
-  return response.json();
-}
+const request = (path, options) =>
+  apiRequest(API_URLS.INVENTORY, path, options);
 
 export const inventoryService = {
   async getStock(productId) {

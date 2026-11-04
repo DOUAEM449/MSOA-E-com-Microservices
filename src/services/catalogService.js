@@ -1,5 +1,7 @@
+import { apiRequest } from "./apiClient";
 import { products } from "../data/products";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
+
 
 export const catalogService = {
   async getProducts() {
@@ -7,34 +9,24 @@ export const catalogService = {
       return products;
     }
 
-    const response = await fetch(`${API_URLS.CATALOG}/products`);
-
-    if (!response.ok) {
-      throw new Error("Failed to load products");
-    }
-
-    return response.json();
+    return apiRequest(API_URLS.CATALOG, "/products");
   },
 
   async getProductById(id) {
     if (BACKEND_MODE.CATALOG === "mock") {
       return products.find(
-        (product) => String(product.id) === String(id)
+        (p) => String(p.id) === String(id)
       ) ?? null;
     }
 
-    const response = await fetch(
-      `${API_URLS.CATALOG}/products/${encodeURIComponent(id)}`
-    );
-
-    if (response.status === 404) {
-      return null;
+    try {
+      return await apiRequest(
+        API_URLS.CATALOG,
+        `/products/${encodeURIComponent(id)}`
+      );
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
     }
-
-    if (!response.ok) {
-      throw new Error("Failed to load product");
-    }
-
-    return response.json();
   }
 };

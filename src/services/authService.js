@@ -1,4 +1,4 @@
-
+import { apiRequest } from "./apiClient";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
 
 const USERS_KEY = "msoa-shop-users";
@@ -40,30 +40,8 @@ function getSession() {
   }
 }
 
-async function request(path, options = {}) {
-  const token = getSession()?.token;
-
-  const response = await fetch(`${API_URLS.AUTH}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers
-    }
-  });
-
-  if (response.status === 401) {
-    throw new Error("Invalid or expired authentication.");
-  }
-
-  if (!response.ok) {
-    throw new Error(`Authentication API error: ${response.status}`);
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
-}
+const request = (path, options) =>
+  apiRequest(API_URLS.AUTH, path, options);
 
 export const authService = {
   async login(email, password) {

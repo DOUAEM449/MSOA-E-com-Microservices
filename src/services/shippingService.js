@@ -1,4 +1,4 @@
-
+import { apiRequest } from "./apiClient";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
 
 const STORAGE_KEY = "msoa-shop-shipments";
@@ -18,25 +18,8 @@ function saveShipments(shipments) {
   );
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API_URLS.SHIPPING}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers
-    }
-  });
-
-  if (response.status === 404) return null;
-
-  if (!response.ok) {
-    throw new Error(`Shipping API error: ${response.status}`);
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
-}
+const request = (path, options) =>
+  apiRequest(API_URLS.SHIPPING, path, options);
 
 export const shippingService = {
   async getShipments() {
@@ -49,9 +32,14 @@ export const shippingService = {
 
   async getShipmentByOrder(orderId) {
     if (BACKEND_MODE.SHIPPING === "rest") {
-      return request(
-        `/api/shipments/order/${encodeURIComponent(orderId)}`
-      );
+      try {
+        return await request(
+          `/api/shipments/order/${encodeURIComponent(orderId)}`
+        );
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
     }
 
     return loadShipments().find(

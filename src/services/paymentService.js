@@ -1,4 +1,4 @@
-
+import { apiRequest } from "./apiClient";
 import { orderService } from "./orderService";
 import { BACKEND_MODE, API_URLS } from "../config/backend";
 
@@ -16,25 +16,8 @@ function savePayments(payments) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API_URLS.PAYMENTS}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers
-    }
-  });
-
-  if (response.status === 404) return null;
-
-  if (!response.ok) {
-    throw new Error(`Payments API error: ${response.status}`);
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
-}
+const request = (path, options) =>
+  apiRequest(API_URLS.PAYMENTS, path, options);
 
 export const paymentService = {
   async getPayments() {
@@ -47,9 +30,14 @@ export const paymentService = {
 
   async getPaymentByOrder(orderId) {
     if (BACKEND_MODE.PAYMENTS === "rest") {
-      return request(
-        `/api/payments/order/${encodeURIComponent(orderId)}`
-      );
+      try {
+        return await request(
+          `/api/payments/order/${encodeURIComponent(orderId)}`
+        );
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
     }
 
     return loadPayments().find(

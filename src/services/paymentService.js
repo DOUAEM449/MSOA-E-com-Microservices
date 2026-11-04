@@ -1,5 +1,6 @@
 
 import { orderService } from "./orderService";
+import { BACKEND_MODE, API_URLS } from "../config/backend";
 
 const STORAGE_KEY = "msoa-shop-payments";
 
@@ -11,27 +12,59 @@ function loadPayments() {
   }
 }
 
-let payments = loadPayments();
-
-function savePayments() {
+function savePayments(payments) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
 }
 
+async function request(path, options = {}) {
+  const response = await fetch(`${API_URLS.PAYMENTS}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers
+    }
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    throw new Error(`Payments API error: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+
+  return response.json();
+}
+
 export const paymentService = {
-  // GET /api/payments
   async getPayments() {
-    return [...payments];
+    if (BACKEND_MODE.PAYMENTS === "rest") {
+      return request("/api/payments");
+    }
+
+    return loadPayments();
   },
 
-  // GET /api/payments/order/{orderId}
   async getPaymentByOrder(orderId) {
-    return payments.find(
+    if (BACKEND_MODE.PAYMENTS === "rest") {
+      return request(
+        `/api/payments/order/${encodeURIComponent(orderId)}`
+      );
+    }
+
+    return loadPayments().find(
       (payment) => payment.orderId === orderId
     ) ?? null;
   },
 
-  // POST /api/payments
   async processPayment(orderId, method = "CARD") {
+    if (BACKEND_MODE.PAYMENTS === "rest") {
+      return request("/api/payments", {
+        method: "POST",
+        body: JSON.stringify({ orderId, method })
+      });
+    }
+
     const order = await orderService.getOrderById(orderId);
 
     if (!order) {
@@ -45,10 +78,12 @@ export const paymentService = {
     const existing = await this.getPaymentByOrder(orderId);
 
     if (existing) {
-      throw new Error("Payment already attempted for this order.");
+      throw new Error(
+        "Payment already attempted for this order."
+      );
     }
 
-    // Simulated payment: always succeeds for now.
+    // Simulated payment: always succeeds.
     const payment = {
       id: crypto.randomUUID(),
       orderId,
@@ -58,8 +93,9 @@ export const paymentService = {
       createdAt: new Date().toISOString()
     };
 
+    const payments = loadPayments();
     payments.push(payment);
-    savePayments();
+    savePayments(payments);
 
     await orderService.updateStatus(orderId, "PAID");
 

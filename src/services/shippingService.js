@@ -1,4 +1,6 @@
 
+import { BACKEND_MODE, API_URLS } from "../config/backend";
+
 const STORAGE_KEY = "msoa-shop-shipments";
 
 function loadShipments() {
@@ -16,25 +18,61 @@ function saveShipments(shipments) {
   );
 }
 
+async function request(path, options = {}) {
+  const response = await fetch(`${API_URLS.SHIPPING}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers
+    }
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    throw new Error(`Shipping API error: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+
+  return response.json();
+}
+
 export const shippingService = {
-  // GET /api/shipments
   async getShipments() {
+    if (BACKEND_MODE.SHIPPING === "rest") {
+      return request("/api/shipments");
+    }
+
     return loadShipments();
   },
 
-  // GET /api/shipments/order/{orderId}
   async getShipmentByOrder(orderId) {
+    if (BACKEND_MODE.SHIPPING === "rest") {
+      return request(
+        `/api/shipments/order/${encodeURIComponent(orderId)}`
+      );
+    }
+
     return loadShipments().find(
       (shipment) => shipment.orderId === orderId
     ) ?? null;
   },
 
-  // POST /api/shipments
   async createShipment(orderId, address) {
+    if (BACKEND_MODE.SHIPPING === "rest") {
+      return request("/api/shipments", {
+        method: "POST",
+        body: JSON.stringify({ orderId, address })
+      });
+    }
+
     const shipments = loadShipments();
 
     if (shipments.some((s) => s.orderId === orderId)) {
-      throw new Error("Shipment already exists for this order.");
+      throw new Error(
+        "Shipment already exists for this order."
+      );
     }
 
     const shipment = {
@@ -55,8 +93,17 @@ export const shippingService = {
     return shipment;
   },
 
-  // PATCH /api/shipments/{id}/status
   async updateStatus(id, status) {
+    if (BACKEND_MODE.SHIPPING === "rest") {
+      return request(
+        `/api/shipments/${encodeURIComponent(id)}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status })
+        }
+      );
+    }
+
     const shipments = loadShipments();
 
     const shipment = shipments.find(

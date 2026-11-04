@@ -1,22 +1,19 @@
 
 import { products } from "../data/products";
+import { BACKEND_MODE, API_URLS } from "../config/backend";
 
 const STORAGE_KEY = "msoa-shop-inventory";
 
-// Initialize inventory from the hardcoded product table.
 function loadInventory() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-
-    if (saved) {
-      return JSON.parse(saved);
-    }
+    if (saved) return JSON.parse(saved);
   } catch {
-    // Fall back to initial stock.
+    // Use initial stock
   }
 
   return Object.fromEntries(
-    products.map((product) => [product.id, product.stock])
+    products.map((p) => [p.id, p.stock])
   );
 }
 
@@ -27,19 +24,50 @@ function refreshInventory() {
 }
 
 function saveInventory() {
-  refreshInventory();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
 }
 
+async function request(path, options = {}) {
+  const response = await fetch(
+    `${API_URLS.INVENTORY}${path}`,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Inventory API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export const inventoryService = {
-  // GET /api/inventory/{productId}
   async getStock(productId) {
+    if (BACKEND_MODE.INVENTORY === "rest") {
+      const data = await request(
+        `/api/inventory/${encodeURIComponent(productId)}`
+      );
+      return data.stock;
+    }
+
     refreshInventory();
     return inventory[productId] ?? 0;
   },
 
-  // POST /api/inventory/check
   async checkAvailability(items) {
+    if (BACKEND_MODE.INVENTORY === "rest") {
+      const data = await request("/api/inventory/check", {
+        method: "POST",
+        body: JSON.stringify({ items })
+      });
+      return data.available;
+    }
+
     refreshInventory();
     return items.every(
       (item) =>
@@ -48,31 +76,38 @@ export const inventoryService = {
     );
   },
 
-  // POST /api/inventory/reserve
   async reserve(items) {
-    refreshInventory();
-    const available = await this.checkAvailability(items);
-
-    if (!available) {
-      throw new Error("Insufficient stock for one or more products.");
+    if (BACKEND_MODE.INVENTORY === "rest") {
+      return request("/api/inventory/reserve", {
+        method: "POST",
+        body: JSON.stringify({ items })
+      });
     }
 
-    // All items are checked before modifying inventory.
+    refreshInventory();
+
+    if (!(await this.checkAvailability(items))) {
+      throw new Error("Insufficient stock.");
+    }
+
     for (const item of items) {
       inventory[item.productId] -= item.quantity;
     }
 
     saveInventory();
-
-    return {
-      success: true,
-      message: "Stock reserved successfully."
-    };
+    return { success: true };
   },
 
-  // POST /api/inventory/release
   async release(items) {
+    if (BACKEND_MODE.INVENTORY === "rest") {
+      return request("/api/inventory/release", {
+        method: "POST",
+        body: JSON.stringify({ items })
+      });
+    }
+
     refreshInventory();
+
     for (const item of items) {
       if (!(item.productId in inventory)) {
         throw new Error(`Unknown product: ${item.productId}`);
@@ -84,10 +119,6 @@ export const inventoryService = {
     }
 
     saveInventory();
-
-    return {
-      success: true,
-      message: "Stock released successfully."
-    };
+    return { success: true };
   }
 };

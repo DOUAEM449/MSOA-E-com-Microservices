@@ -1,8 +1,9 @@
 
+import { BACKEND_MODE, API_URLS } from "../config/backend";
+
 const USERS_KEY = "msoa-shop-users";
 const SESSION_KEY = "msoa-shop-session";
 
-// Demo accounts only. Never store real passwords in localStorage.
 const demoUsers = [
   {
     id: "user-1",
@@ -31,9 +32,59 @@ function publicUser(user) {
   return safeUser;
 }
 
+function getSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY));
+  } catch {
+    return null;
+  }
+}
+
+async function request(path, options = {}) {
+  const token = getSession()?.token;
+
+  const response = await fetch(`${API_URLS.AUTH}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers
+    }
+  });
+
+  if (response.status === 401) {
+    throw new Error("Invalid or expired authentication.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Authentication API error: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+
+  return response.json();
+}
+
 export const authService = {
-  // POST /api/auth/login
   async login(email, password) {
+    if (BACKEND_MODE.AUTH === "rest") {
+      const session = await request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!session?.user || !session?.token) {
+        throw new Error("Invalid authentication response.");
+      }
+
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify(session)
+      );
+
+      return session;
+    }
+
     const user = loadUsers().find(
       (item) =>
         item.email.toLowerCase() === email.trim().toLowerCase() &&
@@ -49,13 +100,22 @@ export const authService = {
       token: `mock-${crypto.randomUUID()}`
     };
 
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify(session)
+    );
 
     return session;
   },
 
-  // POST /api/auth/register
   async register(name, email, password) {
+    if (BACKEND_MODE.AUTH === "rest") {
+      return request("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password })
+      });
+    }
+
     const users = loadUsers();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -63,7 +123,11 @@ export const authService = {
       throw new Error("All fields are required.");
     }
 
-    if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
+    if (
+      users.some(
+        (user) => user.email.toLowerCase() === normalizedEmail
+      )
+    ) {
       throw new Error("Email already registered.");
     }
 
@@ -81,19 +145,37 @@ export const authService = {
     return publicUser(user);
   },
 
-  // POST /api/auth/logout
   async logout() {
+    if (BACKEND_MODE.AUTH === "rest") {
+      try {
+        await request("/api/auth/logout", {
+          method: "POST"
+        });
+      } finally {
+        localStorage.removeItem(SESSION_KEY);
+      }
+
+      return { success: true };
+    }
+
     localStorage.removeItem(SESSION_KEY);
     return { success: true };
   },
 
-  // GET /api/auth/me
   async getCurrentUser() {
-    try {
-      const session = JSON.parse(localStorage.getItem(SESSION_KEY));
-      return session?.user ?? null;
-    } catch {
-      return null;
+    if (BACKEND_MODE.AUTH === "rest") {
+      const session = getSession();
+
+      if (!session?.token) return null;
+
+      try {
+        return await request("/api/auth/me");
+      } catch {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
     }
+
+    return getSession()?.user ?? null;
   }
 };

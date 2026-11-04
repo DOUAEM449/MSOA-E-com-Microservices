@@ -148,7 +148,7 @@ export default function Orders() {
         ) : (
           <Stack spacing={3}>
             {orders.map((order) => {
-              const canCancel = order.status === "PENDING_PAYMENT";
+              const canCancel = ["PENDING_PAYMENT", "PAID"].includes(order.status);
 
               return (
                 <Paper

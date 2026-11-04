@@ -1,5 +1,6 @@
-
+import { shippingService } from "./shippingService";
 import { inventoryService } from "./inventoryService";
+import { BACKEND_MODE, API_URLS } from "../config/backend";
 
 const STORAGE_KEY = "msoa-shop-orders";
 
@@ -17,39 +18,75 @@ function saveOrders() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
 }
 
+async function request(path, options = {}) {
+  const response = await fetch(`${API_URLS.ORDERS}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers
+    }
+  });
+
+  if (response.status === 404) return null;
+
+  if (!response.ok) {
+    throw new Error(`Orders API error: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+
+  return response.json();
+}
+
 export const orderService = {
-  // GET /api/orders
   async getOrders(userId) {
-    if (!userId) {
-      throw new Error("Authentication required.");
+    if (!userId) throw new Error("Authentication required.");
+
+    if (BACKEND_MODE.ORDERS === "rest") {
+      return request(
+        `/api/orders?userId=${encodeURIComponent(userId)}`
+      );
     }
 
+    orders = loadOrders();
     return orders.filter((order) => order.userId === userId);
   },
 
-  // GET /api/orders/{id}
   async getOrderById(id) {
+    if (BACKEND_MODE.ORDERS === "rest") {
+      return request(`/api/orders/${encodeURIComponent(id)}`);
+    }
+
+    orders = loadOrders();
     return orders.find((order) => order.id === id) ?? null;
   },
 
-  // POST /api/orders
   async createOrder(items, customer, userId) {
-    if (!userId) {
-      throw new Error("Authentication required.");
+    if (!userId) throw new Error("Authentication required.");
+    if (!items.length) throw new Error("Cannot create an empty order.");
+
+    if (BACKEND_MODE.ORDERS === "rest") {
+      return request("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          customer,
+          items: items.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity
+          }))
+        })
+      });
     }
 
-    // Keep the existing implementation...
-    if (!items.length) {
-      throw new Error("Cannot create an empty order.");
-    }
+    orders = loadOrders();
 
-    const reservationItems = items.map((item) => ({
-      productId: item.id,
-      quantity: item.quantity
-    }));
-
-    // Verify and reserve stock through Inventory.
-    await inventoryService.reserve(reservationItems);
+    await inventoryService.reserve(
+      items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity
+      }))
+    );
 
     const order = {
       id: crypto.randomUUID(),
@@ -75,15 +112,23 @@ export const orderService = {
     return order;
   },
 
-  // PATCH /api/orders/{id}/status
   async updateStatus(id, status) {
-    const order = orders.find((order) => order.id === id);
-
-    if (!order) {
-      throw new Error("Order not found.");
+    if (BACKEND_MODE.ORDERS === "rest") {
+      return request(
+        `/api/orders/${encodeURIComponent(id)}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status })
+        }
+      );
     }
 
-    const allowedTransitions = {
+    orders = loadOrders();
+
+    const order = orders.find((order) => order.id === id);
+    if (!order) throw new Error("Order not found.");
+
+    const transitions = {
       PENDING_PAYMENT: ["PAID", "CANCELLED"],
       PAID: ["SHIPPED", "CANCELLED"],
       SHIPPED: ["DELIVERED"],
@@ -91,7 +136,7 @@ export const orderService = {
       CANCELLED: []
     };
 
-    if (!allowedTransitions[order.status]?.includes(status)) {
+    if (!transitions[order.status]?.includes(status)) {
       throw new Error(
         `Invalid transition: ${order.status} → ${status}`
       );
@@ -103,16 +148,32 @@ export const orderService = {
     return order;
   },
 
-  // POST /api/orders/{id}/cancel
   async cancelOrder(id) {
-    const order = orders.find((order) => order.id === id);
-
-    if (!order) {
-      throw new Error("Order not found.");
+    if (BACKEND_MODE.ORDERS === "rest") {
+      return request(
+        `/api/orders/${encodeURIComponent(id)}/cancel`,
+        { method: "POST" }
+      );
     }
+
+    orders = loadOrders();
+
+    const order = orders.find((order) => order.id === id);
+    if (!order) throw new Error("Order not found.");
 
     if (!["PENDING_PAYMENT", "PAID"].includes(order.status)) {
       throw new Error("This order cannot be cancelled.");
+    }
+
+    const shipment = await shippingService.getShipmentByOrder(id);
+
+    if (
+      shipment &&
+      !["PREPARING", "CANCELLED"].includes(shipment.status)
+    ) {
+      throw new Error(
+        "Cannot cancel an order that has already been shipped."
+      );
     }
 
     await inventoryService.release(

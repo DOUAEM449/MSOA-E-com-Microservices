@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
+} from "@mui/material";
 
+import { ExpandMoreOutlined } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -18,7 +24,8 @@ import {
 import {
   Inventory2Outlined,
   ShoppingBagOutlined,
-  CancelOutlined
+  CancelOutlined,
+  DetailsOutlined
 } from "@mui/icons-material";
 
 import { orderService } from "../services/orderService";
@@ -149,38 +156,73 @@ export default function Orders() {
                   variant="outlined"
                   sx={{ borderRadius: 3, overflow: "hidden" }}
                 >
-                  <Box sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Stack
-                      direction={{ xs: "column", sm: "row" }}
-                      justifyContent="space-between"
-                      alignItems={{ xs: "flex-start", sm: "center" }}
-                      spacing={2}
-                    >
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="subtitle1" fontWeight={800}>
-                          Order #{order.id.slice(0, 8)}
-                        </Typography>
+                  
+<Box
+  sx={{
+    p: { xs: 2, sm: 3 },
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 2,
+    flexWrap: "wrap"
+  }}
+>
+  {/* Left: Order information */}
+  <Stack spacing={0.5} sx={{
+    alignItems: "flex-start"
+  }}>
+    <Stack direction="row" spacing={2} alignItems="center">
+      <Typography variant="subtitle1" fontWeight={800}>
+        Order #{order.id.slice(0, 8)}
+      </Typography>
 
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          {new Date(order.createdAt).toLocaleString()}
-                        </Typography>
-                      </Box>
+      <Chip
+        label={order.status.replaceAll("_", " ")}
+        color={statusColors[order.status] || "default"}
+        size="small"
+      />
+    </Stack>
 
-                      <Chip
-                        label={order.status.replaceAll("_", " ")}
-                        color={statusColors[order.status] || "default"}
-                        size="small"
-                      />
-                    </Stack>
-                  </Box>
+    <Typography variant="body2" color="text.secondary">
+      {new Date(order.createdAt).toLocaleString()}
+    </Typography>
+  </Stack>
 
-                  <Divider />
+  {/* Right: Total */}
+  <Stack direction="row" spacing={2} alignItems="center">
+    <Typography fontWeight={800}>Total</Typography>
+
+    <Typography fontWeight={800} color="primary.main">
+      {formatPrice(order.total)}
+    </Typography>
+  </Stack>
+</Box>
+
+
 
                   <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
-                    {order.items.map((item) => (
+                    <Accordion
+                      disableGutters
+                      elevation={0}
+                      sx={{
+                        mt: 2,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: "8px !important",
+                        "&:before": { display: "none" }
+                      }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<ExpandMoreOutlined />}
+                        sx={{ px: 2 }}
+                      >
+                        <Typography fontWeight={600}>
+                          Order Details
+                        </Typography>
+                      </AccordionSummary>
+
+                      <AccordionDetails sx={{ px: 2, pt: 0 }}>
+                        {order.items.map((item) => (
                       
 
 <Box
@@ -218,31 +260,11 @@ export default function Orders() {
     {formatPrice(item.price * item.quantity)}
   </Typography>
 </Box>
-
-
                     ))}
+                      </AccordionDetails>
+                    </Accordion>
 
-                    <Divider />
-
-                    <Stack
-                      direction="row"
-                      sx={{
-                        justifyContent: { xs: "space-between", sm: "flex-end" },
-                        alignItems: { xs: "flex-start", sm: "center" }
-                      }}
-                      spacing={2}
-                    >
-                      <Typography fontWeight={800}>
-                        Total
-                      </Typography>
-
-                      <Typography
-                        fontWeight={800}
-                        color="primary.main"
-                      >
-                        {formatPrice(order.total)}
-                      </Typography>
-                    </Stack>
+                    
 
                     {canCancel && (
                       <Button

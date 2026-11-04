@@ -13,13 +13,44 @@ import {
 
 import { SearchOutlined } from "@mui/icons-material";
 import ProductCard from "../components/ProductCard";
-import { products } from "../data/products";
+import { catalogService } from "../services/catalogService";
 
 export default function Products() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const { addToCart } = useCart();
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProducts() {
+      try {
+        const data = await catalogService.getProducts();
+
+        if (active) {
+          setProducts(data);
+        }
+      } catch (err) {
+        if (active) {
+          setError(err.message);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     async function loadProducts() {
@@ -34,7 +65,7 @@ export default function Products() {
     }
 
     loadProducts();
-  }, []);
+  }, [products]);
 
   const categories = [
     "All",
@@ -55,6 +86,18 @@ export default function Products() {
   const handleAddToCart = (product) => {
     addToCart(product);
   };
+
+  if (loading) {
+  return <Typography sx={{ p: 4 }}>Loading products...</Typography>;
+}
+
+if (error) {
+  return (
+    <Alert severity="error" sx={{ m: 3 }}>
+      {error}
+    </Alert>
+  );
+}
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 } }}>

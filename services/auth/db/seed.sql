@@ -1,0 +1,1 @@
+INSERT INTO users VALUES ('user-1','Demo Customer','demo@msoa.shop','DEMO_ONLY_REPLACE_WITH_REAL_PASSWORD_HASH','CUSTOMER','2026-11-04T10:00:00Z');

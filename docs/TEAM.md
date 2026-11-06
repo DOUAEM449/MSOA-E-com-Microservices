@@ -34,9 +34,9 @@ Compte démo (mode mock) : `demo@msoa.shop` / `demo123`
 
 | Service | Membre | Stack |
 |---|---|---|
-| Auth | | |
-| Catalog | | |
-| Inventory | | |
-| Orders | | |
-| Payments | | |
-| Shipping | | |
+| Auth | Youssef | |
+| Catalog | Salma | |
+| Inventory | Amal | |
+| Orders + Intégration | Douae (leader) | |
+| Payments | Taha | |
+| Shipping | Taha | |

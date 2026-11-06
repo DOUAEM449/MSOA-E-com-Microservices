@@ -149,9 +149,9 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
   <a href="#git">Workflow Git</a>
   <div class="grp">Fiches par membre</div>
   <a href="#douae">Douae · Orders</a>
-  <a href="#salma">Salma · Inventory</a>
-  <a href="#amal">Amal · Auth</a>
-  <a href="#youssef">Youssef · Catalog</a>
+  <a href="#inventory">Amal · Inventory</a>
+  <a href="#auth">Youssef · Auth</a>
+  <a href="#catalog">Salma · Catalog</a>
   <a href="#taha">Taha · Payments + Shipping</a>
   <div class="grp">Qualité</div>
   <a href="#pieges">Pièges à éviter</a>
@@ -168,10 +168,10 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
   <h1>E-commerce en microservices</h1>
   <p class="lead">Lab 2 — Microservice-oriented Architectures (Pr. Zouheir BANOU, Master Big Data &amp; Data Science). Ce guide dit à chacun quoi construire, dans quel ordre, avec quelles règles, et comment tout assembler à la fin.</p>
   <div class="chips">
-    <span class="chip"><i style="background:var(--douae)">D</i>Douae · Orders · Leader</span>
-    <span class="chip"><i style="background:var(--salma)">S</i>Salma · Inventory</span>
-    <span class="chip"><i style="background:var(--amal)">A</i>Amal · Auth</span>
-    <span class="chip"><i style="background:var(--youssef)">Y</i>Youssef · Catalog</span>
+    <span class="chip"><i style="background:var(--douae)">D</i>Douae · Orders + Intégration · Leader</span>
+    <span class="chip"><i style="background:var(--amal)">A</i>Amal · Inventory</span>
+    <span class="chip"><i style="background:var(--youssef)">Y</i>Youssef · Auth</span>
+    <span class="chip"><i style="background:var(--salma)">S</i>Salma · Catalog</span>
     <span class="chip"><i style="background:var(--taha)">T</i>Taha · Payments + Shipping</span>
   </div>
 </header>
@@ -223,12 +223,12 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
       </g>
 
       <g>
-        <rect x="20" y="172" width="120" height="66" rx="12" fill="var(--amal)" opacity=".15" stroke="var(--amal)"/>
-        <text x="80" y="200" text-anchor="middle" font-weight="800">Auth</text><text x="80" y="220" text-anchor="middle" class="sub">:8081 · Amal</text>
-        <rect x="170" y="172" width="120" height="66" rx="12" fill="var(--youssef)" opacity=".15" stroke="var(--youssef)"/>
-        <text x="230" y="200" text-anchor="middle" font-weight="800">Catalog</text><text x="230" y="220" text-anchor="middle" class="sub">:8082 · Youssef</text>
-        <rect x="320" y="172" width="120" height="66" rx="12" fill="var(--salma)" opacity=".15" stroke="var(--salma)"/>
-        <text x="380" y="200" text-anchor="middle" font-weight="800">Inventory</text><text x="380" y="220" text-anchor="middle" class="sub">:8083 · Salma</text>
+        <rect x="20" y="172" width="120" height="66" rx="12" fill="var(--youssef)" opacity=".15" stroke="var(--youssef)"/>
+        <text x="80" y="200" text-anchor="middle" font-weight="800">Auth</text><text x="80" y="220" text-anchor="middle" class="sub">:8081 · Youssef</text>
+        <rect x="170" y="172" width="120" height="66" rx="12" fill="var(--salma)" opacity=".15" stroke="var(--salma)"/>
+        <text x="230" y="200" text-anchor="middle" font-weight="800">Catalog</text><text x="230" y="220" text-anchor="middle" class="sub">:8082 · Salma</text>
+        <rect x="320" y="172" width="120" height="66" rx="12" fill="var(--amal)" opacity=".15" stroke="var(--amal)"/>
+        <text x="380" y="200" text-anchor="middle" font-weight="800">Inventory</text><text x="380" y="220" text-anchor="middle" class="sub">:8083 · Amal</text>
         <rect x="460" y="172" width="120" height="66" rx="12" fill="var(--douae)" opacity=".18" stroke="var(--douae)" stroke-width="2"/>
         <text x="520" y="200" text-anchor="middle" font-weight="800">Orders ★</text><text x="520" y="220" text-anchor="middle" class="sub">:8084 · Douae</text>
         <rect x="610" y="172" width="120" height="66" rx="12" fill="var(--taha)" opacity=".15" stroke="var(--taha)"/>
@@ -293,9 +293,9 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
   <h2>Répartition de l'équipe</h2>
   <div class="tablewrap"><table>
     <tr><th>Membre</th><th>Service</th><th>Dossier</th><th>Dépend de</th><th>Ordre d'intégration</th></tr>
-    <tr><td><b style="color:var(--youssef)">Youssef</b></td><td>Catalog</td><td><code>services/catalog</code></td><td>rien</td><td>1</td></tr>
-    <tr><td><b style="color:var(--salma)">Salma</b></td><td>Inventory</td><td><code>services/inventory</code></td><td>rien</td><td>2</td></tr>
-    <tr><td><b style="color:var(--amal)">Amal</b></td><td>Auth</td><td><code>services/auth</code></td><td>rien</td><td>3</td></tr>
+    <tr><td><b style="color:var(--salma)">Salma</b></td><td>Catalog</td><td><code>services/catalog</code></td><td>rien</td><td>1</td></tr>
+    <tr><td><b style="color:var(--amal)">Amal</b></td><td>Inventory</td><td><code>services/inventory</code></td><td>rien</td><td>2</td></tr>
+    <tr><td><b style="color:var(--youssef)">Youssef</b></td><td>Auth</td><td><code>services/auth</code></td><td>rien</td><td>3</td></tr>
     <tr><td><b style="color:var(--douae)">Douae</b> (leader)</td><td>Orders</td><td><code>services/orders</code></td><td>Catalog, Inventory</td><td>4</td></tr>
     <tr><td><b style="color:var(--taha)">Taha</b></td><td>Payments + Shipping</td><td><code>services/payments</code>, <code>services/shipping</code></td><td>Orders</td><td>5 et 6</td></tr>
   </table></div>
@@ -326,7 +326,7 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
     <li><b class="t">Squelette du service</b><span class="who">Chacun</span><br>Projet créé dans <code>services/&lt;nom&gt;/</code>, connexion à sa base SQLite (<code>db/&lt;nom&gt;.db</code>), CORS activé, route <code>GET /health</code> qui renvoie <code>{"status":"UP"}</code>, port correct.</li>
     <li><b class="t">Endpoints du contrat</b><span class="who">Chacun</span><br>Implémenter tous les endpoints de sa fiche, avec les règles métier et les codes d'erreur. Tester chaque route avec Postman, Thunder Client ou <code>curl</code>.</li>
     <li><b class="t">Brancher au frontend, un service à la fois</b><span class="who">Ordre : Catalog → Inventory → Auth → Orders → Payments → Shipping</span><br>Dans <code>backend.js</code>, passer uniquement son service en <code>"rest"</code>, vérifier dans le navigateur (onglet Network) que tout marche, puis passer au suivant. C'est la stratégie <b>Strangler Fig</b> (Q6) appliquée pour de vrai.</li>
-    <li><b class="t">Communication inter-services</b><span class="who">Douae, Taha (+ Salma, Youssef en support)</span><br>Orders ↔ Catalog/Inventory, Payments → Orders, Shipping → Orders. Tester le scénario complet avec les 6 services en <code>"rest"</code>.</li>
+    <li><b class="t">Communication inter-services</b><span class="who">Douae, Taha (+ Amal, Salma en support)</span><br>Orders ↔ Catalog/Inventory, Payments → Orders, Shipping → Orders. Tester le scénario complet avec les 6 services en <code>"rest"</code>.</li>
     <li><b class="t">Tests des scénarios + preuves</b><span class="who">Tout le monde</span><br>Dérouler la <a href="#validation">checklist de validation</a>, faire des captures d'écran (frontend + Postman), les mettre dans <code>docs/tests/</code>.</li>
     <li><b class="t">Q6 + rendu final</b><span class="who">Douae</span><br>Rédiger la stratégie de migration, vérifier les README de chaque service, faire la démo complète, rendre le lien du repo.</li>
   </ol>
@@ -361,7 +361,7 @@ git push -u origin inventory/reserve-endpoint
 <!-- ============ DOUAE ============ -->
 <section id="douae">
 <div class="card member" style="--c:var(--douae)">
-  <div class="head"><div class="avatar">D</div><div><h3>Douae — Orders</h3><div class="meta">Port 8084 · <code>services/orders</code> · base <code>orders.db</code></div></div><span class="tag">Orchestrateur + Leader</span></div>
+  <div class="head"><div class="avatar">D</div><div><h3>Douae — Orders + Intégration</h3><div class="meta">Port 8084 · <code>services/orders</code> · base <code>orders.db</code></div></div><span class="tag">Orchestrateur + Leader</span></div>
   <p>Orders est le cœur du système : c'est lui qui <b>coordonne</b> la création d'une commande (Saga orchestrée). Il ne gère pas le stock lui-même, il demande à Inventory.</p>
   <h4>Endpoints</h4>
   <div class="tablewrap"><table>
@@ -398,9 +398,9 @@ git push -u origin inventory/reserve-endpoint
 </section>
 
 <!-- ============ SALMA ============ -->
-<section id="salma">
-<div class="card member" style="--c:var(--salma)">
-  <div class="head"><div class="avatar">S</div><div><h3>Salma — Inventory</h3><div class="meta">Port 8083 · <code>services/inventory</code> · base <code>inventory.db</code></div></div><span class="tag">Service critique</span></div>
+<section id="inventory">
+<div class="card member" style="--c:var(--amal)">
+  <div class="head"><div class="avatar">A</div><div><h3>Amal — Inventory</h3><div class="meta">Port 8083 · <code>services/inventory</code> · base <code>inventory.db</code></div></div><span class="tag">Service critique</span></div>
   <p>Inventory est la seule source de vérité du stock. Sa règle la plus importante : <b>la réservation est atomique</b>.</p>
   <h4>Endpoints</h4>
   <div class="tablewrap"><table>
@@ -425,9 +425,9 @@ COMMIT;</code></pre>
 </section>
 
 <!-- ============ AMAL ============ -->
-<section id="amal">
-<div class="card member" style="--c:var(--amal)">
-  <div class="head"><div class="avatar">A</div><div><h3>Amal — Auth</h3><div class="meta">Port 8081 · <code>services/auth</code> · base <code>auth.db</code></div></div><span class="tag">Sécurité</span></div>
+<section id="auth">
+<div class="card member" style="--c:var(--youssef)">
+  <div class="head"><div class="avatar">Y</div><div><h3>Youssef — Auth</h3><div class="meta">Port 8081 · <code>services/auth</code> · base <code>auth.db</code></div></div><span class="tag">Sécurité</span></div>
   <p>Auth gère l'inscription, la connexion et l'identité de l'utilisateur connecté. Le frontend envoie ensuite le token dans l'en-tête <code>Authorization: Bearer &lt;token&gt;</code> à <b>tous</b> les services.</p>
   <h4>Endpoints</h4>
   <div class="tablewrap"><table>
@@ -446,9 +446,9 @@ COMMIT;</code></pre>
 </section>
 
 <!-- ============ YOUSSEF ============ -->
-<section id="youssef">
-<div class="card member" style="--c:var(--youssef)">
-  <div class="head"><div class="avatar">Y</div><div><h3>Youssef — Catalog</h3><div class="meta">Port 8082 · <code>services/catalog</code> · base <code>catalog.db</code></div></div><span class="tag">Premier à brancher</span></div>
+<section id="catalog">
+<div class="card member" style="--c:var(--salma)">
+  <div class="head"><div class="avatar">S</div><div><h3>Salma — Catalog</h3><div class="meta">Port 8082 · <code>services/catalog</code> · base <code>catalog.db</code></div></div><span class="tag">Premier à brancher</span></div>
   <p>Catalog est le service le plus simple (lecture seule). C'est le premier qu'on passe en <code>"rest"</code> : il sert de modèle aux autres (CORS, structure, README).</p>
   <h4>Endpoints</h4>
   <div class="tablewrap"><table>
@@ -563,7 +563,7 @@ COMMIT;</code></pre>
   </div>
 </section>
 
-<footer>Guide d'équipe MSOA · Lab 2 · Douae, Salma, Amal, Youssef, Taha. Source de vérité des contrats : le <code>README.md</code> du prof à la racine du repo.</footer>
+<footer>Guide d'équipe MSOA · Lab 2 · Douae, Youssef, Taha, Amal, Salma. Source de vérité des contrats : le <code>README.md</code> du prof à la racine du repo.</footer>
 </main>
 </div>
 

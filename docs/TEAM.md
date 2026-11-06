@@ -7,7 +7,7 @@ Transformation d'une application e-commerce (frontend React fourni) vers une arc
 ## Structure
 
 ```
-frontend/            React (Vite) fourni — ne pas modifier pages/composants, seulement src/config/backend.js
+Racine (comme le repo du prof)  React (Vite) — ne pas modifier pages/composants, seulement src/config/backend.js
 services/
   auth/       :8081  Authentification et comptes
   catalog/    :8082  Consultation des produits
@@ -23,7 +23,7 @@ Chaque service a sa propre base SQLite dans `services/<service>/db/` (database-p
 ## Lancer le frontend
 
 ```bash
-cd frontend
+
 npm install
 npm run dev
 ```

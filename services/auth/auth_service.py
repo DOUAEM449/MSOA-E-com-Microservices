@@ -18,7 +18,7 @@ def register_user(req: RegisterRequest) -> UserResponse:
     cursor.execute("SELECT id FROM users WHERE email = ?", (req.email.lower().strip(),))
     if cursor.fetchone():
         conn.close()
-        raise HTTPException(status_code=400, detail="Email already registered.")
+        raise HTTPException(status_code=409, detail="Email already registered.")
     
     user_id = str(uuid.uuid4())
     pw_hash = hash_password(req.password)

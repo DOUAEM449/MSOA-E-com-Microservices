@@ -34,7 +34,7 @@ Compte démo (mode mock) : `demo@msoa.shop` / `demo123`
 
 | Service | Membre | Stack |
 |---|---|---|
-| Auth | Youssef | |
+| Auth | Youssef | Python (FastAPI) |
 | Catalog | Salma | |
 | Inventory | Amal | |
 | Orders + Intégration | Douae (leader) | |

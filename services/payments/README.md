@@ -1,7 +1,7 @@
 # Payments service
 
 - Port: 8085
-- Owner: _(smiya dyal l member)_
+- Owner: Taha
 - Stack: _(ex: Spring Boot / FastAPI / Express)_
 - DB: `db/payments.db` (SQLite, data dyal had service bohdo)
 

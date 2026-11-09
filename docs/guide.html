@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide d'équipe MSOA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1; --surface:#ffffff; --surface-2:#f0eee8; --ink:#1b1c1f; --ink-2:#55585f; --line:#e2dfd6;
+  --accent:#d9480f; --accent-soft:#fff0e8;
+  --ok:#2b8a3e; --ok-soft:#e9f7ec; --warn:#b45309; --warn-soft:#fff6e0; --bad:#c92a2a; --bad-soft:#fdecec; --info:#1c6dd0; --info-soft:#e8f1fd;
+  --douae:#d9480f; --salma:#0b7285; --amal:#7048e8; --youssef:#2b8a3e; --taha:#c2255c;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121316; --surface:#1b1d21; --surface-2:#23262b; --ink:#ececec; --ink-2:#a3a7ae; --line:#30333a;
+    --accent:#ff7a3d; --accent-soft:#3a2216;
+    --ok:#51cf66; --ok-soft:#1b2e20; --warn:#fcc419; --warn-soft:#332a12; --bad:#ff6b6b; --bad-soft:#361b1b; --info:#74b0ff; --info-soft:#17263a;
+    --douae:#ff7a3d; --salma:#3bc9db; --amal:#9775fa; --youssef:#51cf66; --taha:#f06595;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121316; --surface:#1b1d21; --surface-2:#23262b; --ink:#ececec; --ink-2:#a3a7ae; --line:#30333a;
+  --accent:#ff7a3d; --accent-soft:#3a2216;
+  --ok:#51cf66; --ok-soft:#1b2e20; --warn:#fcc419; --warn-soft:#332a12; --bad:#ff6b6b; --bad-soft:#361b1b; --info:#74b0ff; --info-soft:#17263a;
+  --douae:#ff7a3d; --salma:#3bc9db; --amal:#9775fa; --youssef:#51cf66; --taha:#f06595;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.65 "Plus Jakarta Sans",system-ui,sans-serif}
+code,pre{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.86em}
+code{background:var(--surface-2);padding:.1em .4em;border-radius:6px;overflow-wrap:anywhere}
+main{overflow-wrap:break-word}
+pre{background:#16181c;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:none;padding:0;color:inherit}
+a{color:var(--accent)}
+h1,h2,h3,h4{line-height:1.25;margin:0}
+h2{font-size:1.65rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+h3{font-size:1.15rem;font-weight:700;margin:22px 0 8px}
+h4{font-size:.95rem;font-weight:700;margin:16px 0 6px}
+p{margin:8px 0}
+ul,ol{padding-left:22px;margin:8px 0}
+li{margin:3px 0}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1240px;margin:0 auto;gap:36px;padding:0 24px}
+nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 0}
+nav.toc .brand{font-weight:800;font-size:1.05rem;margin-bottom:14px}
+nav.toc .brand span{color:var(--accent)}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:5px 10px;border-radius:8px;font-size:.9rem;border-left:2px solid transparent}
+nav.toc a:hover{background:var(--surface-2);color:var(--ink)}
+nav.toc a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft);font-weight:600}
+nav.toc .grp{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin:16px 10px 4px;font-weight:700}
+nav.toc .theme{margin-top:18px;font:inherit;font-size:.85rem;background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer}
+main{padding:28px 0 80px;min-width:0}
+section{margin-bottom:56px}
+.lead{color:var(--ink-2);font-size:1.02rem;max-width:72ch}
+
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:34px;box-shadow:var(--shadow);position:relative;overflow:hidden;margin-bottom:40px}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;background:var(--accent-soft)}
+.hero *{position:relative;z-index:1}
+.kicker{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+.hero h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin:6px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 6px;border-radius:999px;background:var(--surface-2);font-size:.85rem;font-weight:600}
+.chip i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-style:normal;font-size:.72rem;font-weight:800}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card h4{margin-top:0}
+
+.callout{border-radius:12px;padding:12px 16px;margin:12px 0;border-left:4px solid;font-size:.95rem}
+.callout b:first-child{display:block;margin-bottom:2px}
+.c-bad{background:var(--bad-soft);border-color:var(--bad)}
+.c-warn{background:var(--warn-soft);border-color:var(--warn)}
+.c-ok{background:var(--ok-soft);border-color:var(--ok)}
+.c-info{background:var(--info-soft);border-color:var(--info)}
+
+table{width:100%;border-collapse:collapse;font-size:.92rem;background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--surface-2);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2)}
+tr:last-child td{border-bottom:none}
+.tablewrap{overflow-x:auto;margin:10px 0}
+
+.m{font-weight:700;font-family:"JetBrains Mono",monospace;font-size:.75rem;padding:2px 7px;border-radius:5px;color:#fff}
+.GET{background:#1c7ed6}.POST{background:#2b8a3e}.PATCH{background:#e8590c}
+
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;overflow-x:auto}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.diagram text{font-family:"Plus Jakarta Sans",sans-serif;fill:var(--ink)}
+.diagram .sub{fill:var(--ink-2);font-size:11px}
+.diagram .box{fill:var(--surface-2);stroke:var(--line)}
+.diagram .arrow{stroke:var(--ink-2);stroke-width:1.6;fill:none}
+.diagram .arrow.sync{stroke:var(--accent);stroke-width:2}
+.diagram .lbl{font-size:11px;fill:var(--accent);font-weight:700}
+
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;position:relative;padding:14px 18px 14px 62px;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:10px 0}
+.steps>li:before{content:counter(s);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800}
+.steps>li b.t{display:block;font-size:1.02rem}
+.who{font-size:.78rem;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+
+.member{border-top:5px solid var(--c);margin-bottom:22px}
+.member .head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.avatar{width:48px;height:48px;border-radius:14px;background:var(--c);color:#fff;display:grid;place-items:center;font-weight:800;font-size:1.2rem;flex:none}
+.member .head h3{margin:0;font-size:1.3rem}
+.member .head .meta{color:var(--ink-2);font-size:.88rem}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);margin-left:auto}
+.dod li::marker{content:"✓  ";color:var(--ok);font-weight:800}
+
+.checklist label{display:flex;gap:12px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.checklist label:last-child{border-bottom:none}
+.checklist input{margin-top:5px;accent-color:var(--ok);width:17px;height:17px;flex:none}
+.checklist input:checked+span{color:var(--ink-2);text-decoration:line-through}
+.progress{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.progress div{height:100%;background:var(--ok);width:0;transition:width .3s}
+
+footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padding-top:18px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;padding:0 16px;gap:0}
+  nav.toc{display:none}
+  .g2,.g3{grid-template-columns:1fr}
+  .hero{padding:24px}
+  .hero h1{font-size:1.8rem}
+}
+@media print{nav.toc{display:none}.layout{display:block}.card,.hero{box-shadow:none}section{break-inside:avoid-page}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" id="toc">
+  <div class="brand">MSOA <span>·</span> Lab 2</div>
+  <div class="grp">Comprendre</div>
+  <a href="#intro">Les microservices</a>
+  <a href="#archi">Architecture cible</a>
+  <a href="#flux">Flux d'une commande</a>
+  <div class="grp">S'organiser</div>
+  <a href="#equipe">Répartition</a>
+  <a href="#regles">Règles d'or</a>
+  <a href="#etapes">Étapes à suivre</a>
+  <a href="#git">Workflow Git</a>
+  <div class="grp">Fiches par membre</div>
+  <a href="#douae">Douae · Orders</a>
+  <a href="#inventory">Amal · Inventory</a>
+  <a href="#auth">Youssef · Auth</a>
+  <a href="#catalog">Salma · Catalog</a>
+  <a href="#taha">Taha · Payments + Shipping</a>
+  <div class="grp">Qualité</div>
+  <a href="#pieges">Pièges à éviter</a>
+  <a href="#hacks">Astuces</a>
+  <a href="#validation">Checklist de validation</a>
+  <a href="#livrables">Livrables</a>
+  <button class="theme" id="themeBtn" type="button">Changer le thème</button>
+</nav>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">Cahier des charges · Guide d'équipe</div>
+  <h1>E-commerce en microservices</h1>
+  <p class="lead">Lab 2 — Microservice-oriented Architectures (Pr. Zouheir BANOU, Master Big Data &amp; Data Science). Ce guide dit à chacun quoi construire, dans quel ordre, avec quelles règles, et comment tout assembler à la fin.</p>
+  <div class="chips">
+    <span class="chip"><i style="background:var(--douae)">D</i>Douae · Orders + Intégration · Leader</span>
+    <span class="chip"><i style="background:var(--amal)">A</i>Amal · Inventory</span>
+    <span class="chip"><i style="background:var(--youssef)">Y</i>Youssef · Auth</span>
+    <span class="chip"><i style="background:var(--salma)">S</i>Salma · Catalog</span>
+    <span class="chip"><i style="background:var(--taha)">T</i>Taha · Payments + Shipping</span>
+  </div>
+</header>
+
+<!-- ============ INTRO ============ -->
+<section id="intro">
+  <h2>C'est quoi un microservice ?</h2>
+  <p class="lead">Un microservice est une petite application indépendante qui s'occupe d'<b>une seule capacité métier</b>, qui a <b>sa propre base de données</b>, et qui parle aux autres uniquement via une <b>API REST</b> (HTTP + JSON).</p>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Avant : le monolithe</h4>
+      <p>Un seul backend fait tout : produits, stock, commandes, paiements. Une seule base de données. Un petit changement dans le stock oblige à redéployer toute l'application, et un bug peut tout faire tomber.</p>
+    </div>
+    <div class="card">
+      <h4>Après : 6 microservices</h4>
+      <p>6 programmes séparés, chacun sur son port, avec sa base. On peut modifier, redéployer ou faire monter en charge un seul service (par exemple Catalog pendant les promos) sans toucher aux autres.</p>
+    </div>
+  </div>
+  <h3>Les 4 principes qu'on doit respecter (et que le prof va vérifier)</h3>
+  <div class="grid g2">
+    <div class="card"><h4>1. Forte cohésion</h4>Tout ce qui est dans un service concerne le même métier. Inventory ne gère que le stock, pas les prix.</div>
+    <div class="card"><h4>2. Faible couplage</h4>Un service connaît seulement le <i>contrat REST</i> des autres, jamais leur code ni leur base.</div>
+    <div class="card"><h4>3. Autonomie</h4>Chaque service démarre, se teste et se déploie seul : <code>python main.py</code> ou <code>npm start</code>, et il marche.</div>
+    <div class="card"><h4>4. Propriété des données</h4>Chaque service est le seul à lire et écrire sa base. Pour avoir une info d'un autre service, on appelle son API.</div>
+  </div>
+  <div class="callout c-info"><b>Le rôle du frontend</b>Le React fourni est déjà fini. Il fonctionne en mode <code>mock</code> (données simulées dans le navigateur). Notre travail : construire les vrais backends, puis passer chaque service de <code>"mock"</code> à <code>"rest"</code> dans <code>src/config/backend.js</code>.</div>
+</section>
+
+<!-- ============ ARCHI ============ -->
+<section id="archi">
+  <h2>Architecture cible</h2>
+  <p class="lead">Les flèches grises sont les appels du frontend. Les flèches orange sont les appels <b>entre microservices</b>, qu'on doit coder nous-mêmes.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 900 400" role="img" aria-label="Architecture: le frontend appelle 6 services; Orders appelle Catalog et Inventory; Payments et Shipping appellent Orders">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      </defs>
+      <rect class="box" x="330" y="14" width="240" height="56" rx="12"/>
+      <text x="450" y="38" text-anchor="middle" font-weight="800">Frontend React (Vite)</text>
+      <text x="450" y="57" text-anchor="middle" class="sub">localhost:5173 · src/config/backend.js</text>
+
+      <g style="color:var(--ink-2)">
+        <path class="arrow" d="M360 70 L80 170" marker-end="url(#ah)"/>
+        <path class="arrow" d="M395 70 L230 170" marker-end="url(#ah)"/>
+        <path class="arrow" d="M430 70 L380 170" marker-end="url(#ah)"/>
+        <path class="arrow" d="M470 70 L520 170" marker-end="url(#ah)"/>
+        <path class="arrow" d="M505 70 L670 170" marker-end="url(#ah)"/>
+        <path class="arrow" d="M540 70 L820 170" marker-end="url(#ah)"/>
+      </g>
+
+      <g>
+        <rect x="20" y="172" width="120" height="66" rx="12" fill="var(--youssef)" opacity=".15" stroke="var(--youssef)"/>
+        <text x="80" y="200" text-anchor="middle" font-weight="800">Auth</text><text x="80" y="220" text-anchor="middle" class="sub">:8081 · Youssef</text>
+        <rect x="170" y="172" width="120" height="66" rx="12" fill="var(--salma)" opacity=".15" stroke="var(--salma)"/>
+        <text x="230" y="200" text-anchor="middle" font-weight="800">Catalog</text><text x="230" y="220" text-anchor="middle" class="sub">:8082 · Salma</text>
+        <rect x="320" y="172" width="120" height="66" rx="12" fill="var(--amal)" opacity=".15" stroke="var(--amal)"/>
+        <text x="380" y="200" text-anchor="middle" font-weight="800">Inventory</text><text x="380" y="220" text-anchor="middle" class="sub">:8083 · Amal</text>
+        <rect x="460" y="172" width="120" height="66" rx="12" fill="var(--douae)" opacity=".18" stroke="var(--douae)" stroke-width="2"/>
+        <text x="520" y="200" text-anchor="middle" font-weight="800">Orders ★</text><text x="520" y="220" text-anchor="middle" class="sub">:8084 · Douae</text>
+        <rect x="610" y="172" width="120" height="66" rx="12" fill="var(--taha)" opacity=".15" stroke="var(--taha)"/>
+        <text x="670" y="200" text-anchor="middle" font-weight="800">Payments</text><text x="670" y="220" text-anchor="middle" class="sub">:8085 · Taha</text>
+        <rect x="760" y="172" width="120" height="66" rx="12" fill="var(--taha)" opacity=".15" stroke="var(--taha)"/>
+        <text x="820" y="200" text-anchor="middle" font-weight="800">Shipping</text><text x="820" y="220" text-anchor="middle" class="sub">:8086 · Taha</text>
+      </g>
+
+      <g style="color:var(--accent)">
+        <path class="arrow sync" d="M490 238 Q 460 300 395 240" marker-end="url(#ah)"/>
+        <text x="430" y="300" text-anchor="middle" class="lbl">reserve / release</text>
+        <path class="arrow sync" d="M470 238 Q 350 345 240 240" marker-end="url(#ah)"/>
+        <text x="300" y="332" text-anchor="middle" class="lbl">prix + noms</text>
+        <path class="arrow sync" d="M650 238 Q 600 300 545 240" marker-end="url(#ah)"/>
+        <text x="600" y="316" text-anchor="middle" class="lbl">GET order · PATCH PAID</text>
+        <path class="arrow sync" d="M805 238 Q 700 360 560 240" marker-end="url(#ah)"/>
+        <text x="720" y="342" text-anchor="middle" class="lbl">GET order (PAID ?)</text>
+      </g>
+
+      <g class="sub">
+        <rect x="20" y="365" width="860" height="26" rx="8" class="box"/>
+        <text x="450" y="383" text-anchor="middle" class="sub">Chaque service possède sa base SQLite : auth.db · catalog.db · inventory.db · orders.db · payments.db · shipping.db</text>
+      </g>
+    </svg>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>Service</th><th>Port</th><th>Responsabilité</th><th>Base (tables)</th><th>Appelle</th></tr>
+    <tr><td><b>Auth</b></td><td>8081</td><td>Comptes, connexion, token</td><td><code>users</code></td><td>personne</td></tr>
+    <tr><td><b>Catalog</b></td><td>8082</td><td>Infos produits (nom, prix, image)</td><td><code>products</code></td><td>personne</td></tr>
+    <tr><td><b>Inventory</b></td><td>8083</td><td>Stock, réservation, libération</td><td><code>stock</code></td><td>personne</td></tr>
+    <tr><td><b>Orders</b> ★</td><td>8084</td><td>Commandes + orchestration</td><td><code>orders</code>, <code>order_items</code></td><td>Catalog, Inventory</td></tr>
+    <tr><td><b>Payments</b></td><td>8085</td><td>Paiement simulé</td><td><code>payments</code></td><td>Orders</td></tr>
+    <tr><td><b>Shipping</b></td><td>8086</td><td>Expédition et suivi</td><td><code>shipments</code></td><td>Orders</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ FLUX ============ -->
+<section id="flux">
+  <h2>Flux d'une commande (Q4 du TP)</h2>
+  <p class="lead">Voici exactement ce que fait la page Checkout du frontend (<code>src/pages/Checkout.jsx</code>), et ce que chaque backend doit faire en coulisse.</p>
+  <ol class="steps">
+    <li><b class="t">Vérifier le stock</b><span class="who">Frontend → Inventory</span><br><code>POST /api/inventory/check</code> → <code>{"available": true}</code>. Simple vérification, rien n'est modifié.</li>
+    <li><b class="t">Créer la commande</b><span class="who">Frontend → Orders → Catalog + Inventory</span><br>Orders récupère les vrais prix chez Catalog, calcule le total, puis appelle <code>POST /api/inventory/reserve</code>. Si la réservation échoue → erreur <code>409</code> et la commande n'est pas créée. Sinon → statut <code>PENDING_PAYMENT</code>.</li>
+    <li><b class="t">Payer</b><span class="who">Frontend → Payments → Orders</span><br>Payments lit la commande (<code>GET /api/orders/{id}</code>) pour connaître le montant, simule le paiement (<code>SUCCESS</code>), puis met la commande en <code>PAID</code> (<code>PATCH /api/orders/{id}/status</code>).</li>
+    <li><b class="t">Expédier</b><span class="who">Frontend → Shipping → Orders</span><br>Shipping vérifie que la commande est <code>PAID</code>, crée l'expédition avec un numéro de suivi, statut <code>PREPARING</code>.</li>
+    <li><b class="t">Suivi</b><span class="who">Frontend → Shipping puis Orders</span><br>Le composant <code>ShipmentTracker</code> avance l'expédition, puis met lui-même la commande à <code>SHIPPED</code> / <code>DELIVERED</code>.</li>
+  </ol>
+  <div class="callout c-warn"><b>Et si le stock est insuffisant ?</b>Inventory refuse <i>toute</i> la réservation (atomique : soit tous les produits, soit aucun). Orders renvoie une erreur <code>409</code> avec <code>{"message": "..."}</code> et ne crée pas la commande. Si un problème arrive <i>après</i> la réservation (ex. erreur en base), Orders appelle <code>/release</code> pour rendre le stock : c'est la <b>compensation</b> (pattern Saga, orchestré par Orders).</div>
+  <h3>Cycle de vie d'une commande</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Statut</th><th>Qui le met</th><th>Annulation possible ?</th></tr>
+    <tr><td><code>PENDING_PAYMENT</code></td><td>Orders (création)</td><td>Oui → libère le stock</td></tr>
+    <tr><td><code>PAID</code></td><td>Payments (via PATCH)</td><td>Oui → libère le stock</td></tr>
+    <tr><td><code>SHIPPED</code></td><td>Frontend (via PATCH)</td><td><b>Non</b> → 409</td></tr>
+    <tr><td><code>DELIVERED</code></td><td>Frontend (via PATCH)</td><td><b>Non</b> → 409</td></tr>
+    <tr><td><code>CANCELLED</code></td><td>Orders (cancel)</td><td>déjà annulée → 409</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ EQUIPE ============ -->
+<section id="equipe">
+  <h2>Répartition de l'équipe</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Membre</th><th>Service</th><th>Dossier</th><th>Dépend de</th><th>Ordre d'intégration</th></tr>
+    <tr><td><b style="color:var(--salma)">Salma</b></td><td>Catalog</td><td><code>services/catalog</code></td><td>rien</td><td>1</td></tr>
+    <tr><td><b style="color:var(--amal)">Amal</b></td><td>Inventory</td><td><code>services/inventory</code></td><td>rien</td><td>2</td></tr>
+    <tr><td><b style="color:var(--youssef)">Youssef</b></td><td>Auth</td><td><code>services/auth</code></td><td>rien</td><td>3</td></tr>
+    <tr><td><b style="color:var(--douae)">Douae</b> (leader)</td><td>Orders</td><td><code>services/orders</code></td><td>Catalog, Inventory</td><td>4</td></tr>
+    <tr><td><b style="color:var(--taha)">Taha</b></td><td>Payments + Shipping</td><td><code>services/payments</code>, <code>services/shipping</code></td><td>Orders</td><td>5 et 6</td></tr>
+  </table></div>
+  <div class="callout c-info"><b>Tout le monde commence en même temps</b>On n'attend pas les autres. Ceux qui dépendent d'un service pas encore prêt utilisent un <b>faux service</b> (un petit stub qui renvoie un JSON fixe) pour avancer. Voir <a href="#hacks">Astuces</a>.</div>
+</section>
+
+<!-- ============ REGLES ============ -->
+<section id="regles">
+  <h2>Règles d'or</h2>
+  <div class="grid g2">
+    <div class="card"><h4>🚫 On ne touche pas au React</h4>Interdit de modifier <code>src/pages</code>, <code>src/components</code>, <code>src/services</code>. Le seul fichier qu'on change : <code>src/config/backend.js</code>.</div>
+    <div class="card"><h4>📜 Le contrat REST est sacré</h4>Mêmes méthodes HTTP, mêmes chemins, mêmes noms de champs JSON (en <code>camelCase</code> : <code>productId</code>, <code>createdAt</code>…). Une seule lettre différente et le frontend casse.</div>
+    <div class="card"><h4>🗄️ Une base par service</h4>Personne ne lit la base d'un autre. Pas de jointure entre <code>orders.db</code> et <code>catalog.db</code>. Les IDs (<code>productId</code>, <code>userId</code>…) sont de simples références.</div>
+    <div class="card"><h4>🔌 Communication = REST seulement</h4>Pour une info d'un autre service, on appelle son API. Les URLs des autres services se mettent dans une variable de config, jamais en dur partout dans le code.</div>
+    <div class="card"><h4>🌐 CORS obligatoire</h4>Chaque service autorise l'origine <code>http://localhost:5173</code> (méthodes GET, POST, PATCH, OPTIONS ; en-têtes <code>Content-Type</code>, <code>Authorization</code>).</div>
+    <div class="card"><h4>❗ Format d'erreur commun</h4>Toujours <code>{"message": "texte lisible"}</code> avec le bon code : <code>400</code> données invalides, <code>401</code> non connecté, <code>404</code> introuvable, <code>409</code> conflit métier, <code>503</code> service dépendant indisponible.</div>
+    <div class="card"><h4>💰 Ne jamais faire confiance au frontend</h4>Les prix, le stock et les droits viennent toujours du backend. Le frontend envoie seulement <code>productId</code> + <code>quantity</code>.</div>
+    <div class="card"><h4>🧩 Liberté de technologie</h4>Chacun choisit sa stack (Spring Boot, FastAPI, Express…). Seul le contrat compte. Chaque service a un <code>README.md</code> avec la commande pour le lancer.</div>
+  </div>
+</section>
+
+<!-- ============ ETAPES ============ -->
+<section id="etapes">
+  <h2>Étapes à suivre</h2>
+  <ol class="steps">
+    <li><b class="t">Mise en place</b><span class="who">Tout le monde · Jour 1</span><br>Cloner le repo, lancer le frontend (<code>npm install</code> puis <code>npm run dev</code>), tester l'app en mode mock avec <code>demo@msoa.shop</code> / <code>demo123</code>. Lire le <code>README.md</code> du prof (contrats) et sa fiche dans ce guide. Remplir sa stack dans <code>docs/TEAM.md</code>.</li>
+    <li><b class="t">Partie I : l'analyse (Q1 à Q4)</b><span class="who">Tout le monde, coordonné par Douae</span><br>Réunion d'équipe pour rédiger <code>docs/answers.md</code> : 3 arguments MSOA, décomposition par capacité métier, évaluation (cohésion, couplage, autonomie, données), scénario de commande. Cette analyse sert de base au code : on code ce qu'on a écrit.</li>
+    <li><b class="t">Squelette du service</b><span class="who">Chacun</span><br>Projet créé dans <code>services/&lt;nom&gt;/</code>, connexion à sa base SQLite (<code>db/&lt;nom&gt;.db</code>), CORS activé, route <code>GET /health</code> qui renvoie <code>{"status":"UP"}</code>, port correct.</li>
+    <li><b class="t">Endpoints du contrat</b><span class="who">Chacun</span><br>Implémenter tous les endpoints de sa fiche, avec les règles métier et les codes d'erreur. Tester chaque route avec Postman, Thunder Client ou <code>curl</code>.</li>
+    <li><b class="t">Brancher au frontend, un service à la fois</b><span class="who">Ordre : Catalog → Inventory → Auth → Orders → Payments → Shipping</span><br>Dans <code>backend.js</code>, passer uniquement son service en <code>"rest"</code>, vérifier dans le navigateur (onglet Network) que tout marche, puis passer au suivant. C'est la stratégie <b>Strangler Fig</b> (Q6) appliquée pour de vrai.</li>
+    <li><b class="t">Communication inter-services</b><span class="who">Douae, Taha (+ Amal, Salma en support)</span><br>Orders ↔ Catalog/Inventory, Payments → Orders, Shipping → Orders. Tester le scénario complet avec les 6 services en <code>"rest"</code>.</li>
+    <li><b class="t">Tests des scénarios + preuves</b><span class="who">Tout le monde</span><br>Dérouler la <a href="#validation">checklist de validation</a>, faire des captures d'écran (frontend + Postman), les mettre dans <code>docs/tests/</code>.</li>
+    <li><b class="t">Q6 + rendu final</b><span class="who">Douae</span><br>Rédiger la stratégie de migration, vérifier les README de chaque service, faire la démo complète, rendre le lien du repo.</li>
+  </ol>
+</section>
+
+<!-- ============ GIT ============ -->
+<section id="git">
+  <h2>Workflow Git</h2>
+  <p class="lead">Repo : <a href="https://github.com/DOUAEM449/MSOA-E-com-Microservices">github.com/DOUAEM449/MSOA-E-com-Microservices</a>. La racine est identique au repo du prof ; on ajoute seulement <code>services/</code> et <code>docs/</code>.</p>
+  <pre><code># 1. Une seule fois
+git clone https://github.com/DOUAEM449/MSOA-E-com-Microservices.git
+cd MSOA-E-com-Microservices
+npm install
+
+# 2. Chaque fois qu'on commence à travailler
+git checkout main
+git pull
+git checkout -b inventory/reserve-endpoint     # une branche par fonctionnalité
+
+# 3. Enregistrer et envoyer
+git add services/inventory
+git commit -m "inventory: atomic reserve endpoint"
+git push -u origin inventory/reserve-endpoint
+# puis ouvrir une Pull Request sur GitHub → Douae relit et merge</code></pre>
+  <div class="grid g2">
+    <div class="callout c-ok"><b>À faire</b>Ne modifier que son dossier <code>services/&lt;nom&gt;/</code>. Petits commits avec un préfixe (<code>orders:</code>, <code>auth:</code>…). <code>git pull</code> avant de commencer.</div>
+    <div class="callout c-bad"><b>À ne pas faire</b>Pousser directement sur <code>main</code>. Commiter <code>node_modules/</code>, <code>venv/</code>, <code>target/</code> ou un <code>.env</code>. Commiter son <code>backend.js</code> modifié pendant ses tests personnels.</div>
+  </div>
+  <p>Si le prof met à jour son repo : <code>git fetch upstream</code> puis <code>git merge upstream/main</code> (le remote <code>upstream</code> pointe vers son repo).</p>
+</section>
+
+<!-- ============ DOUAE ============ -->
+<section id="douae">
+<div class="card member" style="--c:var(--douae)">
+  <div class="head"><div class="avatar">D</div><div><h3>Douae — Orders + Intégration</h3><div class="meta">Port 8084 · <code>services/orders</code> · base <code>orders.db</code></div></div><span class="tag">Orchestrateur + Leader</span></div>
+  <p>Orders est le cœur du système : c'est lui qui <b>coordonne</b> la création d'une commande (Saga orchestrée). Il ne gère pas le stock lui-même, il demande à Inventory.</p>
+  <h4>Endpoints</h4>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Ce qu'il fait</th></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/orders?userId={id}</code></td><td>Liste des commandes de cet utilisateur uniquement</td></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/orders/{id}</code></td><td>Une commande (404 si inconnue). Utilisé aussi par Payments et Shipping</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/orders</code></td><td>Crée la commande (voir algorithme)</td></tr>
+    <tr><td><span class="m PATCH">PATCH</span></td><td><code>/api/orders/{id}/status</code></td><td>Body <code>{"status":"PAID"}</code>, seulement les transitions autorisées</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/orders/{id}/cancel</code></td><td>Annule si <code>PENDING_PAYMENT</code> ou <code>PAID</code>, libère le stock ; sinon 409</td></tr>
+  </table></div>
+  <h4>Algorithme de <code>POST /api/orders</code></h4>
+  <ol>
+    <li>Valider le body : <code>userId</code>, <code>customer{name,address,city}</code>, <code>items</code> non vide, <code>quantity &gt; 0</code> → sinon 400.</li>
+    <li>Pour chaque produit : <code>GET {CATALOG}/products/{productId}</code> → récupérer <code>name</code> et <code>price</code> (404 → 400 « produit inconnu »).</li>
+    <li>Calculer <code>total = Σ price × quantity</code>.</li>
+    <li><code>POST {INVENTORY}/api/inventory/reserve</code> avec <code>{"items":[{productId,quantity}]}</code>. Si échec → 409 et on s'arrête.</li>
+    <li>Insérer <code>orders</code> + <code>order_items</code> dans une transaction, statut <code>PENDING_PAYMENT</code>, id du type <code>order-xxxx</code>.</li>
+    <li>Si l'insertion échoue → appeler <code>/api/inventory/release</code> (compensation) puis 500.</li>
+    <li>Répondre <code>201</code> avec la commande au format attendu.</li>
+  </ol>
+  <h4>Format de réponse</h4>
+<pre><code>{
+  "id": "order-1a2b3c", "userId": "user-1",
+  "customer": { "name": "Demo Customer", "address": "123 Main Street", "city": "Casablanca" },
+  "items": [ { "productId": 1, "name": "Lenovo ThinkPad E14", "price": 8499, "quantity": 2 } ],
+  "total": 16998, "status": "PENDING_PAYMENT", "createdAt": "2026-11-06T10:00:00Z"
+}</code></pre>
+  <div class="callout c-warn"><b>Pièges spécifiques</b>La base stocke <code>customer_name</code>, <code>customer_address</code>… à plat : il faut les regrouper dans un objet <code>customer</code> en sortie. <code>order_items.product_id</code> → <code>productId</code>. Mettre un <i>timeout</i> (3 à 5 s) sur les appels vers Catalog/Inventory, et renvoyer 503 s'ils ne répondent pas.</div>
+  <h4>Tâches de leader</h4>
+  <ul><li>Organiser la réunion Partie I et consolider <code>docs/answers.md</code> + Q6.</li><li>Relire et merger les Pull Requests.</li><li>Fixer un point d'avancement court (2 fois par semaine).</li><li>Piloter le test d'intégration final avec les 6 services en <code>"rest"</code>.</li></ul>
+  <h4>Terminé quand…</h4>
+  <ul class="dod"><li>Une commande réserve le stock et apparaît dans « Orders » côté frontend</li><li>Stock insuffisant → message d'erreur clair, rien n'est créé</li><li>Annulation → stock restauré ; commande expédiée → annulation refusée</li><li>Un utilisateur ne voit que ses propres commandes</li></ul>
+</div>
+</section>
+
+<!-- ============ SALMA ============ -->
+<section id="inventory">
+<div class="card member" style="--c:var(--amal)">
+  <div class="head"><div class="avatar">A</div><div><h3>Amal — Inventory</h3><div class="meta">Port 8083 · <code>services/inventory</code> · base <code>inventory.db</code></div></div><span class="tag">Service critique</span></div>
+  <p>Inventory est la seule source de vérité du stock. Sa règle la plus importante : <b>la réservation est atomique</b>.</p>
+  <h4>Endpoints</h4>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Réponse</th></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/inventory/{productId}</code></td><td><code>{"productId":1,"stock":12}</code> (le frontend lit <code>data.stock</code>)</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/inventory/check</code></td><td><code>{"available":true|false}</code>, ne modifie rien</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/inventory/reserve</code></td><td><code>{"success":true}</code> ou 409 <code>{"message":"Insufficient stock for product 3"}</code></td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/inventory/release</code></td><td><code>{"success":true}</code>, rajoute les quantités</td></tr>
+  </table></div>
+  <p>Body des 3 POST : <code>{"items":[{"productId":1,"quantity":2}]}</code></p>
+  <h4>Réservation atomique : la bonne façon</h4>
+<pre><code>BEGIN IMMEDIATE;                       -- verrouille l'écriture (SQLite)
+-- pour chaque item : vérifier quantity >= demandé, sinon ROLLBACK + 409
+UPDATE stock SET quantity = quantity - ?, updated_at = ?
+ WHERE product_id = ? AND quantity >= ?;   -- 0 ligne modifiée → ROLLBACK
+COMMIT;</code></pre>
+  <div class="callout c-warn"><b>Pièges spécifiques</b>Réserver produit par produit sans transaction : si le 3e manque, les 2 premiers sont déjà décomptés (c'est exactement ce que le prof teste). Oublier le cas d'un même <code>productId</code> présent deux fois dans <code>items</code>. Accepter des quantités négatives ou nulles (→ 400). Produit inconnu → 404 sur GET, et indisponible sur check.</div>
+  <div class="callout c-info"><b>Synchroniser les données</b>Mettre les quantités de <code>inventory.db</code> égales aux <code>stock</code> de <code>src/data/products.js</code> (12, 20, …) pour que le mode REST ressemble au mode mock.</div>
+  <h4>Terminé quand…</h4>
+  <ul class="dod"><li>Les cartes produits affichent « N available » venant de la base</li><li>Une réservation dépassant le stock ne change <b>aucune</b> quantité</li><li>Release restaure exactement ce qui a été réservé</li></ul>
+</div>
+</section>
+
+<!-- ============ AMAL ============ -->
+<section id="auth">
+<div class="card member" style="--c:var(--youssef)">
+  <div class="head"><div class="avatar">Y</div><div><h3>Youssef — Auth</h3><div class="meta">Port 8081 · <code>services/auth</code> · base <code>auth.db</code></div></div><span class="tag">Sécurité</span></div>
+  <p>Auth gère l'inscription, la connexion et l'identité de l'utilisateur connecté. Le frontend envoie ensuite le token dans l'en-tête <code>Authorization: Bearer &lt;token&gt;</code> à <b>tous</b> les services.</p>
+  <h4>Endpoints</h4>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Body → Réponse</th></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/auth/register</code></td><td><code>{name,email,password}</code> → 201 <code>{user}</code> ; email déjà pris → 409</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/auth/login</code></td><td><code>{email,password}</code> → <code>{"user":{id,name,email,role},"token":"..."}</code> ; mauvais identifiants → 401</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/auth/logout</code></td><td>invalide le token → 200 ou 204</td></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/auth/me</code></td><td>lit le Bearer token → <code>{id,name,email,role}</code> ; invalide → 401</td></tr>
+  </table></div>
+  <div class="callout c-bad"><b>Piège n°1 : le mot de passe du seed</b>Dans <code>auth.db</code>, <code>password_hash</code> vaut <code>DEMO_ONLY_REPLACE_WITH_REAL_PASSWORD_HASH</code> : ce n'est pas un vrai hash, la connexion échouera. Il faut remplacer cette valeur par le hash bcrypt de <code>demo123</code> (garder <code>id = user-1</code> pour que les commandes de démo restent liées).</div>
+  <div class="callout c-warn"><b>Autres pièges</b>Stocker le mot de passe en clair (interdit : utiliser bcrypt / argon2). Renvoyer <code>password_hash</code> dans la réponse JSON. Email sensible à la casse : faire <code>trim().toLowerCase()</code>. Clé secrète du JWT écrite en dur et commitée → la mettre dans une variable d'environnement.</div>
+  <p><b>Token :</b> un JWT (signé, avec <code>sub</code> = id utilisateur et une expiration) est le plus simple. Pour <code>logout</code> avec un JWT, garder une petite liste de tokens révoqués.</p>
+  <h4>Terminé quand…</h4>
+  <ul class="dod"><li>Connexion avec <code>demo@msoa.shop</code> / <code>demo123</code> en mode REST</li><li>Inscription d'un nouveau compte puis connexion</li><li>Rafraîchir la page garde la session (via <code>/me</code>)</li></ul>
+</div>
+</section>
+
+<!-- ============ YOUSSEF ============ -->
+<section id="catalog">
+<div class="card member" style="--c:var(--salma)">
+  <div class="head"><div class="avatar">S</div><div><h3>Salma — Catalog</h3><div class="meta">Port 8082 · <code>services/catalog</code> · base <code>catalog.db</code></div></div><span class="tag">Premier à brancher</span></div>
+  <p>Catalog est le service le plus simple (lecture seule). C'est le premier qu'on passe en <code>"rest"</code> : il sert de modèle aux autres (CORS, structure, README).</p>
+  <h4>Endpoints</h4>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Réponse</th></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/products</code></td><td>tableau de produits</td></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/products/{id}</code></td><td>un produit, ou 404</td></tr>
+  </table></div>
+  <p>Produit : <code>{"id":1,"name":"...","category":"...","price":8499,"image":"https://...","description":"..."}</code></p>
+  <div class="callout c-bad"><b>Piège n°1 : pas de préfixe <code>/api</code></b>Contrairement aux 5 autres services, le frontend appelle <code>/products</code> et non <code>/api/products</code>. Respecter exactement.</div>
+  <div class="callout c-bad"><b>Piège n°2 : les données du seed ne correspondent pas</b>Le seed contient « ThinkPad Laptop, Wireless Mouse… » alors que le frontend mock a « Lenovo ThinkPad E14, Samsung Galaxy A55… » avec d'autres prix et catégories. Il faut mettre à jour <code>catalog.db</code> avec les 6 produits de <code>src/data/products.js</code> (mêmes id, noms, prix, images).</div>
+  <div class="callout c-info"><b>Ce que Catalog ne fait pas</b>Il ne renvoie pas le stock : le frontend le demande à Inventory pour chaque produit. Garder cette séparation (cohésion).</div>
+  <h4>Terminé quand…</h4>
+  <ul class="dod"><li>La page Products s'affiche avec <code>CATALOG: "rest"</code> et les autres en mock</li><li><code>/products/999</code> renvoie 404 avec <code>{"message"}</code></li></ul>
+</div>
+</section>
+
+<!-- ============ TAHA ============ -->
+<section id="taha">
+<div class="card member" style="--c:var(--taha)">
+  <div class="head"><div class="avatar">T</div><div><h3>Taha — Payments + Shipping</h3><div class="meta">Ports 8085 et 8086 · <code>services/payments</code>, <code>services/shipping</code></div></div><span class="tag">2 services séparés</span></div>
+  <div class="callout c-warn"><b>Deux services, pas un seul</b>Même si une seule personne les code, ce sont deux applications séparées : deux projets, deux ports, deux bases. Ne pas les fusionner dans un seul serveur.</div>
+
+  <h3 style="margin-top:6px">Payments — 8085</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Ce qu'il fait</th></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/payments</code></td><td>liste des paiements</td></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/payments/order/{orderId}</code></td><td>paiement d'une commande, ou 404</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/payments</code></td><td>body <code>{"orderId","method"}</code> → paiement <code>SUCCESS</code></td></tr>
+  </table></div>
+  <ol>
+    <li><code>GET {ORDERS}/api/orders/{orderId}</code> → 404 si inconnue ; doit être <code>PENDING_PAYMENT</code> sinon 409.</li>
+    <li>Le montant = <code>order.total</code> (jamais envoyé par le frontend).</li>
+    <li>Déjà un paiement pour cette commande → 409 (<code>order_id</code> est UNIQUE).</li>
+    <li>Enregistrer <code>{id, orderId, amount, method, status:"SUCCESS", createdAt}</code>.</li>
+    <li><code>PATCH {ORDERS}/api/orders/{orderId}/status</code> avec <code>{"status":"PAID"}</code>.</li>
+  </ol>
+
+  <h3>Shipping — 8086</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Méthode</th><th>Chemin</th><th>Ce qu'il fait</th></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/shipments</code></td><td>liste des expéditions</td></tr>
+    <tr><td><span class="m GET">GET</span></td><td><code>/api/shipments/order/{orderId}</code></td><td>expédition d'une commande, ou 404</td></tr>
+    <tr><td><span class="m POST">POST</span></td><td><code>/api/shipments</code></td><td>body <code>{"orderId","address":{name,address,city}}</code></td></tr>
+    <tr><td><span class="m PATCH">PATCH</span></td><td><code>/api/shipments/{id}/status</code></td><td>body <code>{"status":"SHIPPED"}</code>, une étape à la fois</td></tr>
+  </table></div>
+  <p>À la création : vérifier que la commande est <code>PAID</code> (sinon 409), générer un <code>trackingNumber</code> unique (ex. <code>MSOA-7F3K2A</code>), statut <code>PREPARING</code>. Réponse : <code>{id, orderId, address:{name,address,city}, trackingNumber, status, createdAt, updatedAt}</code>.</p>
+  <p>Transitions autorisées uniquement : <code>PREPARING → SHIPPED → IN_TRANSIT → DELIVERED</code>. Sauter une étape ou revenir en arrière → 409.</p>
+  <div class="callout c-warn"><b>Pièges spécifiques</b>Dans la base, l'adresse est à plat (<code>recipient_name</code>, <code>address</code>, <code>city</code>) : il faut la regrouper dans un objet <code>address</code> avec la clé <code>name</code>. Ne pas oublier de mettre à jour <code>updated_at</code> à chaque changement. Si Orders ne répond pas → 503, ne pas créer le paiement quand même.</div>
+  <h4>Terminé quand…</h4>
+  <ul class="dod"><li>Après un checkout, la commande passe à <code>PAID</code> et a une expédition</li><li>Le tracker avance étape par étape jusqu'à <code>DELIVERED</code></li><li>Payer deux fois la même commande est refusé</li></ul>
+</div>
+</section>
+
+<!-- ============ PIEGES ============ -->
+<section id="pieges">
+  <h2>Pièges à éviter (toute l'équipe)</h2>
+  <div class="grid g2">
+    <div class="callout c-bad"><b>CORS oublié</b>Erreur « blocked by CORS policy » dans la console du navigateur. Penser aussi à répondre aux requêtes <code>OPTIONS</code> (preflight), surtout pour <code>PATCH</code> et l'en-tête <code>Authorization</code>.</div>
+    <div class="callout c-bad"><b>Mauvais nom de champ</b><code>product_id</code> au lieu de <code>productId</code>, <code>created_at</code> au lieu de <code>createdAt</code>. La base est en snake_case, l'API en camelCase : convertir.</div>
+    <div class="callout c-bad"><b>Monolithe distribué</b>Un service qui ouvre la base d'un autre, ou un « service commun » qui fait tout. C'est la mauvaise décomposition que le prof demande d'identifier en Q3.</div>
+    <div class="callout c-bad"><b>Re-seed d'une base déjà remplie</b>Les <code>.db</code> fournis contiennent déjà les données. Relancer <code>seed.sql</code> dessus → erreurs de clé dupliquée. Faire une copie avant de modifier.</div>
+    <div class="callout c-bad"><b>Prix venant du frontend</b>Calculer le total avec un prix reçu du navigateur = n'importe qui peut payer 1 DH. Toujours relire le prix chez Catalog.</div>
+    <div class="callout c-bad"><b>Mauvais port</b>Le frontend appelle exactement 8081 à 8086. Vérifier qu'aucun autre programme n'utilise déjà le port.</div>
+    <div class="callout c-bad"><b>Réponse vide ou HTML</b>Le frontend fait <code>JSON.parse</code> : une page d'erreur HTML (par défaut dans Spring ou Express) casse tout. Toujours renvoyer du JSON.</div>
+    <div class="callout c-bad"><b>Tout tester à la fin</b>Brancher les 6 services le dernier jour = impossible de savoir qui casse quoi. Brancher un par un, dès qu'un service est prêt.</div>
+  </div>
+</section>
+
+<!-- ============ HACKS ============ -->
+<section id="hacks">
+  <h2>Astuces</h2>
+  <div class="grid g2">
+    <div class="card"><h4>Stub en 10 lignes</h4>Douae n'a pas encore Inventory ? Un petit serveur sur 8083 qui répond toujours <code>{"success":true}</code> suffit pour avancer. Même chose pour Taha avec un faux Orders.</div>
+    <div class="card"><h4>URLs en variables d'environnement</h4><code>CATALOG_URL=http://localhost:8082</code>, <code>INVENTORY_URL=…</code>. On passe du stub au vrai service sans toucher au code.</div>
+    <div class="card"><h4>Onglet Network du navigateur</h4>F12 → Network : on voit la requête exacte envoyée par le frontend (URL, body) et la réponse. C'est le meilleur outil pour vérifier le contrat.</div>
+    <div class="card"><h4>Collection Postman partagée</h4>Une requête par endpoint, exportée dans <code>docs/postman/</code>. Les captures servent directement de « preuves de tests ».</div>
+    <div class="card"><h4>Script de démarrage</h4>Un <code>start-all.bat</code> (ou <code>.sh</code>) à la racine qui lance les 6 services : la démo finale se fait en une commande.</div>
+    <div class="card"><h4>Logs lisibles</h4>Préfixer chaque log par le service : <code>[orders] reserve failed: 409</code>. Très utile pour suivre une commande qui traverse 4 services.</div>
+    <div class="card"><h4>Script de reset</h4>Garder une copie propre de chaque <code>.db</code> (ou un script qui la recrée) pour revenir à l'état initial avant la démo.</div>
+    <div class="card"><h4>Copier la structure de Catalog</h4>Le premier service terminé (CORS, format d'erreur, README) sert de modèle. Ceux qui utilisent la même stack copient le squelette.</div>
+  </div>
+</section>
+
+<!-- ============ VALIDATION ============ -->
+<section id="validation">
+  <h2>Checklist de validation</h2>
+  <p class="lead">Ce sont les critères du prof (section 7 du README). Les cases cochées restent enregistrées dans votre navigateur.</p>
+  <div class="progress"><div id="bar"></div></div>
+  <p id="count" class="who">0 / 0</p>
+  <div class="card checklist" id="checklist" style="padding:0">
+    <label><input type="checkbox"><span>Les produits s'affichent depuis Catalog</span></label>
+    <label><input type="checkbox"><span>Inventory empêche toute réservation dépassant le stock disponible</span></label>
+    <label><input type="checkbox"><span>Une commande réserve correctement les produits</span></label>
+    <label><input type="checkbox"><span>Un paiement réussi met la commande à l'état <code>PAID</code></span></label>
+    <label><input type="checkbox"><span>Une annulation autorisée restaure le stock</span></label>
+    <label><input type="checkbox"><span>Une commande expédiée ne peut plus être annulée</span></label>
+    <label><input type="checkbox"><span>Le suivi de livraison respecte les transitions autorisées</span></label>
+    <label><input type="checkbox"><span>Les commandes sont associées au bon utilisateur</span></label>
+    <label><input type="checkbox"><span>Les erreurs REST sont correctement retournées et traitées</span></label>
+    <label><input type="checkbox"><span>Les 6 services tournent en <code>"rest"</code> en même temps (scénario complet)</span></label>
+    <label><input type="checkbox"><span>Partie I (Q1 à Q4) et Q6 rédigées dans <code>docs/answers.md</code></span></label>
+  </div>
+</section>
+
+<!-- ============ LIVRABLES ============ -->
+<section id="livrables">
+  <h2>Livrables</h2>
+  <div class="grid g3">
+    <div class="card"><h4>Code source</h4>Les 6 microservices dans <code>services/</code>, chacun avec un README (stack, commande de lancement, port).</div>
+    <div class="card"><h4>Documentation</h4><code>docs/answers.md</code> (Q1 à Q4, Q6) + description des communications inter-services (le flux ci-dessus).</div>
+    <div class="card"><h4>Preuves de tests</h4>Captures frontend + Postman pour chaque critère de la checklist, dans <code>docs/tests/</code>.</div>
+  </div>
+</section>
+
+<footer>Guide d'équipe MSOA · Lab 2 · Douae, Youssef, Taha, Amal, Salma. Source de vérité des contrats : le <code>README.md</code> du prof à la racine du repo.</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  // Theme toggle
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{var t=localStorage.getItem('msoa-theme'); if(t) root.setAttribute('data-theme',t);}catch(e){}
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    var next=cur==='dark'?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('msoa-theme',next);}catch(e){}
+  });
+  // Checklist persistence
+  var boxes=[].slice.call(document.querySelectorAll('#checklist input'));
+  var saved=[]; try{saved=JSON.parse(localStorage.getItem('msoa-checklist')||'[]');}catch(e){}
+  function update(){
+    var n=boxes.filter(function(b){return b.checked}).length;
+    document.getElementById('bar').style.width=(100*n/boxes.length)+'%';
+    document.getElementById('count').textContent=n+' / '+boxes.length+' validés';
+    try{localStorage.setItem('msoa-checklist',JSON.stringify(boxes.map(function(b){return b.checked})));}catch(e){}
+  }
+  boxes.forEach(function(b,i){b.checked=!!saved[i]; b.addEventListener('change',update);}); update();
+  // Active TOC link
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(l){l.classList.toggle('active',l.getAttribute('href')==='#'+e.target.id)})}})},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('main section[id]').forEach(function(s){obs.observe(s)});
+})();
+</script>
+</body>
+</html>

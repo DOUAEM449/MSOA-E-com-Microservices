@@ -6,7 +6,6 @@
 - **Owner:** Salma El Ouarrate
 - **Stack:** Python, FastAPI, SQLite
 - **Database:** `db/catalog.db`
-- **Virtual environment:** `.venv`
 
 The Catalog microservice is responsible for managing and exposing product information in the e-commerce application.
 
@@ -20,7 +19,6 @@ catalog/
 │   ├── catalog.db
 │   ├── schema.sql
 │   └── seed.sql
-├── .venv/
 ├── main.py
 ├── requirements.txt
 └── README.md
@@ -60,14 +58,6 @@ The service is available at:
 
 The API returns JSON responses.
 
-### Example
-
-Request:
-
-```http
-GET http://localhost:8082/products
-```
-
 Each product contains:
 
 - `id`
@@ -91,7 +81,7 @@ The React frontend communicates with the Catalog service through REST API calls.
 
 The backend configuration is defined in:
 
-`frontend/src/config/backend.js`
+`src/config/backend.js`
 
 The Catalog mode must be set to:
 
@@ -110,5 +100,3 @@ CORS is configured to allow the React development server.
 The Catalog service is an independent microservice responsible only for product catalogue operations.
 
 It exposes its functionality through HTTP REST endpoints and exchanges JSON data with the frontend.
-
-The REST contract is documented in `frontend/README.md`.

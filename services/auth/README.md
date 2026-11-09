@@ -1,8 +1,20 @@
 # Auth service
 
 - Port: 8081
-- Owner: _(smiya dyal l member)_
-- Stack: _(ex: Spring Boot / FastAPI / Express)_
+- Owner: Youssef
+- Stack: Python (FastAPI)
 - DB: `db/auth.db` (SQLite, data dyal had service bohdo)
 
-L contrat REST: shof `frontend/README.md`.
+## How to run
+```bash
+python main.py
+```
+or
+```bash
+uvicorn main:app --port 8081 --reload
+```
+
+## Interactive API Docs (Swagger)
+- http://localhost:8081/docs
+
+L contrat REST: shof `frontend/README.md` et `docs/guide.html`.

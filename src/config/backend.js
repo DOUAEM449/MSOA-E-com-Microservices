@@ -3,7 +3,7 @@ const BACKEND_MODE = {
   AUTH: "rest",
   CATALOG: "mock",
   INVENTORY: "mock",
-  ORDERS: "mock",
+  ORDERS: "rest",
   PAYMENTS: "mock",
   SHIPPING: "mock",
 };

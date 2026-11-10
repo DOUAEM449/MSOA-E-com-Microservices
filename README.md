@@ -17,6 +17,7 @@ git clone https://github.com/ZOUHEIRBN/MSOA-E-com-Demo.git
 cd MSOA-E-com-Demo
 npm install
 npm run dev
+ npx vite --host 0.0.0.0
 ```
 
 Ouvrez l'adresse affichée par Vite (généralement `http://localhost:5173`).

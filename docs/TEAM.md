@@ -38,5 +38,5 @@ Compte démo (mode mock) : `demo@msoa.shop` / `demo123`
 | Catalog | Salma | |
 | Inventory | Amal | |
 | Orders + Intégration | Douae (leader) | |
-| Payments | Taha | |
-| Shipping | Taha | |
+| Payments | Taha | Python (FastAPI) |
+| Shipping | Taha | Python (FastAPI) |

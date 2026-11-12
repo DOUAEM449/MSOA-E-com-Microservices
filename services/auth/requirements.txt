@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+pydantic
+bcrypt>=4.0

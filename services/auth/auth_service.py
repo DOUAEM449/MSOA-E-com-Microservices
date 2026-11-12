@@ -1,6 +1,9 @@
 import hashlib
+import hmac
 import uuid
 from datetime import datetime, timezone
+
+import bcrypt
 from fastapi import HTTPException
 from database import get_db
 from schemas import RegisterRequest, LoginRequest, UserResponse
@@ -8,8 +11,42 @@ from schemas import RegisterRequest, LoginRequest, UserResponse
 # تخزين الجلسات (Tokens)
 SESSIONS = {}
 
+BCRYPT_ROUNDS = 12
+
+
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password with bcrypt (random salt + adaptive cost)."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(BCRYPT_ROUNDS)).decode("utf-8")
+
+
+def _is_legacy_sha256(stored_hash: str) -> bool:
+    return len(stored_hash) == 64 and all(c in "0123456789abcdef" for c in stored_hash)
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Check a password against a bcrypt hash, or a legacy unsalted SHA-256 hash."""
+    if stored_hash.startswith("$2"):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except ValueError:
+            return False
+    if _is_legacy_sha256(stored_hash):
+        legacy = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        return hmac.compare_digest(legacy, stored_hash)
+    return False
+
+
+def _upgrade_legacy_hash(user_id: str, password: str) -> None:
+    """Re-hash a legacy SHA-256 password with bcrypt after a successful login."""
+    conn = get_db()
+    try:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (hash_password(password), user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 def register_user(req: RegisterRequest) -> UserResponse:
     conn = get_db()
@@ -20,6 +57,10 @@ def register_user(req: RegisterRequest) -> UserResponse:
         conn.close()
         raise HTTPException(status_code=409, detail="Email already registered.")
     
+    if len(req.password.encode("utf-8")) > 72:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Password must be at most 72 bytes.")
+
     user_id = str(uuid.uuid4())
     pw_hash = hash_password(req.password)
     created_at = datetime.now(timezone.utc).isoformat()
@@ -51,12 +92,12 @@ def authenticate_user(req: LoginRequest):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     
-    input_hash = hash_password(req.password)
-    is_demo = (req.email.lower().strip() == "demo@msoa.shop" and req.password == "demo123")
-    
-    if user["password_hash"] != input_hash and not is_demo:
+    if not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
-    
+
+    if _is_legacy_sha256(user["password_hash"]):
+        _upgrade_legacy_hash(user["id"], req.password)
+
     token = f"token-{uuid.uuid4()}"
     user_data = {
         "id": user["id"],

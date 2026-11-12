@@ -15,8 +15,7 @@ services/
   orders/     :8084  Création et gestion des commandes (orchestrateur)
   payments/   :8085  Simulation des paiements
   shipping/   :8086  Expédition et suivi
-docs/                answers.md : réponses Part I (analyse) + Q6 (stratégie de migration)
-                     INTEGRATION.md : communications inter-services + preuves de tests
+docs/                Réponses Part I (analyse) + Q6 (stratégie de migration)
 ```
 
 Chaque service a sa propre base SQLite dans `services/<service>/db/` (database-per-service).
@@ -41,6 +40,3 @@ Compte démo (mode mock) : `demo@msoa.shop` / `demo123`
 | Orders + Intégration | Douae (leader) | Python (FastAPI, client `httpx`) | SQLite (`services/orders/db/`) |
 | Payments | Taha | Python (FastAPI, client `httpx`) | SQLite (`services/payments/db/`) |
 | Shipping | Imane | Python (FastAPI, client `httpx`) | SQLite (`services/shipping/db/`) |
-
-Communications entre services et preuves de tests : voir [INTEGRATION.md](INTEGRATION.md).
-Réponses Part I et Q6 : voir [answers.md](answers.md).

@@ -362,15 +362,18 @@ async def update_order_status(
     with get_connection(database_path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         _, current_status = _load_order_and_status(connection, order_id)
-        if new_status not in STATUS_TRANSITIONS[current_status]:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Invalid status transition: {current_status.value} to {new_status.value}.",
+        # Same status again is accepted without change (idempotent): Shipping sets
+        # SHIPPED/DELIVERED, then the frontend tracker sends the same status.
+        if new_status != current_status:
+            if new_status not in STATUS_TRANSITIONS[current_status]:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Invalid status transition: {current_status.value} to {new_status.value}.",
+                )
+            connection.execute(
+                "UPDATE orders SET status = ? WHERE id = ?",
+                (new_status.value, order_id),
             )
-        connection.execute(
-            "UPDATE orders SET status = ? WHERE id = ?",
-            (new_status.value, order_id),
-        )
     return get_order(database_path, order_id)
 
 

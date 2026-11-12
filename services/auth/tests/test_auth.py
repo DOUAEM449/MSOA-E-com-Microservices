@@ -95,3 +95,62 @@ def test_legacy_sha256_hash_is_upgraded_on_login(client, db_path):
 def test_password_longer_than_72_bytes_is_rejected(client):
     r = client.post("/api/auth/register", json={"name": "A", "email": "long@test.local", "password": "x" * 73})
     assert r.status_code == 400
+
+
+# ---- API contract: every error uses {"message": str} ----
+
+def _assert_error(response, status_code):
+    assert response.status_code == status_code
+    body = response.json()
+    assert set(body) == {"message"}
+    assert isinstance(body["message"], str) and body["message"]
+
+
+@pytest.mark.parametrize("payload", [
+    {"email": "a@test.local", "password": "x"},                  # name missing
+    {"name": "A", "password": "x"},                               # email missing
+    {"name": "  ", "email": "a@test.local", "password": "x"},    # blank name
+    {"name": "A", "email": "a@test.local", "password": ""},     # blank password
+    {"name": "A", "email": "not-an-email", "password": "x"},    # invalid e-mail
+])
+def test_register_invalid_input_returns_400(client, payload):
+    _assert_error(client.post("/api/auth/register", json=payload), 400)
+
+
+def test_register_contract(client):
+    r = client.post("/api/auth/register", json={"name": " Ann ", "email": "Ann@Test.Local", "password": "p"})
+    assert r.status_code == 201
+    body = r.json()
+    assert set(body) == {"id", "name", "email", "role"}
+    assert body["name"] == "Ann" and body["email"] == "ann@test.local" and body["role"] == "CUSTOMER"
+    _assert_error(client.post("/api/auth/register", json={"name": "A", "email": "ann@test.local", "password": "p"}), 409)
+
+
+def test_login_errors(client):
+    _assert_error(client.post("/api/auth/login", json={"email": "demo@msoa.shop"}), 400)
+    _assert_error(client.post("/api/auth/login", json={"email": "", "password": "x"}), 400)
+    _assert_error(client.post("/api/auth/login", json={"email": "nobody@test.local", "password": "x"}), 401)
+    _assert_error(client.post("/api/auth/login", json={"email": "demo@msoa.shop", "password": "bad"}), 401)
+
+
+def test_session_lifecycle(client):
+    login = client.post("/api/auth/login", json={"email": "demo@msoa.shop", "password": "demo123"})
+    assert login.status_code == 200
+    assert set(login.json()) == {"user", "token"}
+    token = login.json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    me = client.get("/api/auth/me", headers=headers)
+    assert me.status_code == 200 and me.json()["email"] == "demo@msoa.shop"
+
+    out = client.post("/api/auth/logout", headers=headers)
+    assert out.status_code == 200 and out.json() == {"success": True}
+
+    _assert_error(client.get("/api/auth/me", headers=headers), 401)
+    _assert_error(client.get("/api/auth/me"), 401)
+    # logout is idempotent
+    assert client.post("/api/auth/logout", headers=headers).json() == {"success": True}
+
+
+def test_unknown_route_uses_error_schema(client):
+    _assert_error(client.get("/api/auth/unknown"), 404)

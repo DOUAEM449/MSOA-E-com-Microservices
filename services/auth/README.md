@@ -5,6 +5,12 @@
 - Stack: Python (FastAPI)
 - DB: `db/auth.db` (SQLite, data dyal had service bohdo)
 
+## API contract
+- Full contract (endpoints, headers, request/response schemas, errors): [API_CONTRACT.md](API_CONTRACT.md)
+- OpenAPI spec: [openapi.json](openapi.json) (live at `/openapi.json`, Swagger UI at `/docs`)
+- Postman collection: [postman/auth.postman_collection.json](postman/auth.postman_collection.json)
+- All errors use `{"message": "..."}`.
+
 ## Password storage
 - Passwords are hashed with **bcrypt** (random salt per user, cost 12). They are never stored in clear text.
 - Old accounts that still have an unsalted SHA-256 hash can still log in. Their hash is replaced by a bcrypt hash on their next successful login.

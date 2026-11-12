@@ -77,6 +77,22 @@ def get_shipment_by_id(shipment_id: str):
         conn.close()
 
 
+async def _fetch_order(order_id: str):
+    """GET the order from Orders service. Returns (order, None) or (None, error_tuple)."""
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            resp = await client.get(f"{ORDERS_URL}/api/orders/{order_id}")
+    except httpx.TransportError:
+        return None, (503, {"message": "Orders service is unavailable"})
+
+    if resp.status_code == 404:
+        return None, (404, {"message": f"Order {order_id} not found"})
+    if resp.status_code != 200:
+        return None, (502, {"message": "Unexpected response from Orders service"})
+
+    return resp.json(), None
+
+
 async def create_shipment(order_id: str, address: dict):
     """
     Create a shipment for the given order.
@@ -87,18 +103,9 @@ async def create_shipment(order_id: str, address: dict):
     """
 
     # --- 1. Fetch the order from Orders service ---
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(f"{ORDERS_URL}/api/orders/{order_id}")
-    except (httpx.ConnectError, httpx.TimeoutException):
-        return None, (503, {"message": "Orders service is unavailable"})
-
-    if resp.status_code == 404:
-        return None, (404, {"message": f"Order {order_id} not found"})
-    if resp.status_code != 200:
-        return None, (502, {"message": "Unexpected response from Orders service"})
-
-    order = resp.json()
+    order, error = await _fetch_order(order_id)
+    if error:
+        return None, error
 
     # --- 2. Verify the order is PAID ---
     if order.get("status") != "PAID":
@@ -153,48 +160,59 @@ async def create_shipment(order_id: str, address: dict):
     return shipment, None
 
 
-def update_shipment_status(shipment_id: str, new_status: str):
+async def update_shipment_status(shipment_id: str, new_status: str):
     """
     Advance the shipment to the next status.
     Only sequential transitions are allowed: PREPARING → SHIPPED → IN_TRANSIT → DELIVERED.
+    The shipment must stay consistent with its order: a cancelled order never moves forward.
     Returns (shipment_dict, None) on success or (None, error_tuple) on failure.
     """
+    shipment = get_shipment_by_id(shipment_id)
+    if not shipment:
+        return None, (404, {"message": f"Shipment {shipment_id} not found"})
+
+    current_status = shipment["status"]
+
+    # Check if transition is valid
+    expected_next = VALID_TRANSITIONS.get(current_status)
+    if expected_next is None:
+        return None, (
+            409,
+            {"message": f"Shipment is already {current_status}, no further transitions allowed"},
+        )
+    if new_status != expected_next:
+        return None, (
+            409,
+            {"message": f"Cannot transition from {current_status} to {new_status}. Expected: {expected_next}"},
+        )
+
+    # Ask Orders for the current order status
+    order, error = await _fetch_order(shipment["orderId"])
+    if error:
+        return None, error
+    if order.get("status") == "CANCELLED":
+        return None, (
+            409,
+            {"message": f"Order {shipment['orderId']} is cancelled, shipment cannot move to {new_status}"},
+        )
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     conn = get_db()
     try:
-        row = conn.execute(
-            "SELECT * FROM shipments WHERE id = ?", (shipment_id,)
-        ).fetchone()
-
-        if not row:
-            return None, (404, {"message": f"Shipment {shipment_id} not found"})
-
-        current_status = row["status"]
-
-        # Check if transition is valid
-        expected_next = VALID_TRANSITIONS.get(current_status)
-        if expected_next is None:
-            return None, (
-                409,
-                {"message": f"Shipment is already {current_status}, no further transitions allowed"},
-            )
-        if new_status != expected_next:
-            return None, (
-                409,
-                {"message": f"Cannot transition from {current_status} to {new_status}. Expected: {expected_next}"},
-            )
-
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        conn.execute(
-            "UPDATE shipments SET status = ?, updated_at = ? WHERE id = ?",
-            (new_status, now, shipment_id),
+        # "AND status = ?" makes sure nobody changed the shipment while we were calling Orders
+        cur = conn.execute(
+            "UPDATE shipments SET status = ?, updated_at = ? WHERE id = ? AND status = ?",
+            (new_status, now, shipment_id, current_status),
         )
         conn.commit()
-
-        shipment = _row_to_dict(row)
-        shipment["status"] = new_status
-        shipment["updatedAt"] = now
-        return shipment, None
     finally:
         conn.close()
+
+    if cur.rowcount == 0:
+        return None, (409, {"message": f"Shipment {shipment_id} was updated by another request, please retry"})
+
+    shipment["status"] = new_status
+    shipment["updatedAt"] = now
+    return shipment, None
 

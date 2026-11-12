@@ -38,4 +38,6 @@ The service starts on **http://localhost:8085**.
 - Only orders with status `PENDING_PAYMENT` can be paid
 - Duplicate payment for the same order → 409
 - After a successful payment, the order status is updated to `PAID`
+- If that update fails, the payment is deleted again (compensation) and an error is returned (409 / 502 / 503)
 - If Orders service is unavailable → 503
+- Errors are always JSON `{"message": "..."}`; invalid or missing fields → 400

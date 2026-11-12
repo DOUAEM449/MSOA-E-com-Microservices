@@ -50,12 +50,12 @@ async def create_shipment(body: ShipmentCreate):
 
 
 @router.patch("/{shipment_id}/status")
-def update_status(shipment_id: str, body: ShipmentStatusUpdate):
+async def update_status(shipment_id: str, body: ShipmentStatusUpdate):
     """PATCH /api/shipments/{id}/status — advance shipment status."""
     if not body.status or not body.status.strip():
         return JSONResponse(status_code=400, content={"message": "status is required"})
 
-    shipment, error = shipping_service.update_shipment_status(shipment_id, body.status.strip())
+    shipment, error = await shipping_service.update_shipment_status(shipment_id, body.status.strip())
 
     if error:
         status_code, detail = error

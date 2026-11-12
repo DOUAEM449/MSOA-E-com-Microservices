@@ -1,8 +1,8 @@
 INSERT
-    OR IGNORE INTO stock (product_id, quantity)
-VALUES (1, 12),
-    (2, 20),
-    (3, 8),
-    (4, 25),
-    (5, 10),
-    (6, 15);
+    OR IGNORE INTO stock (product_id, quantity, updated_at)
+VALUES (1, 12, '2026-11-04T10:00:00Z'),
+    (2, 20, '2026-11-04T10:00:00Z'),
+    (3, 8, '2026-11-04T10:00:00Z'),
+    (4, 25, '2026-11-04T10:00:00Z'),
+    (5, 10, '2026-11-04T10:00:00Z'),
+    (6, 15, '2026-11-04T10:00:00Z');

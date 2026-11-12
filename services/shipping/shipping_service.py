@@ -18,6 +18,27 @@ VALID_TRANSITIONS = {
     "IN_TRANSIT": "DELIVERED",
 }
 
+# Shipment statuses that must also be written on the order in Orders service
+ORDER_STATUS_FOR_SHIPMENT = {"SHIPPED", "DELIVERED"}
+
+
+async def _set_order_status(order_id: str, status: str):
+    """PATCH the order status in Orders. Returns None on success, or (status_code, body) on failure."""
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            resp = await client.patch(
+                f"{ORDERS_URL}/api/orders/{order_id}/status",
+                json={"status": status},
+            )
+    except httpx.TransportError:
+        return 503, {"message": "Orders service is unavailable, shipment status was not changed"}
+
+    if resp.status_code in (200, 204):
+        return None
+    if resp.status_code == 409:
+        return 409, {"message": f"Order {order_id} cannot move to {status}, shipment status was not changed"}
+    return 502, {"message": f"Orders service could not set order {order_id} to {status}"}
+
 
 def _generate_tracking_number():
     """Generate a unique tracking number like MSOA-7F3K2A."""
@@ -196,7 +217,14 @@ async def update_shipment_status(shipment_id: str, new_status: str):
             {"message": f"Order {shipment['orderId']} is cancelled, shipment cannot move to {new_status}"},
         )
 
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Keep the order in sync: SHIPPED and DELIVERED are also order statuses.
+    # Orders is updated first, so a shipped order can no longer be cancelled.
+    if new_status in ORDER_STATUS_FOR_SHIPMENT and order.get("status") != new_status:
+        error = await _set_order_status(shipment["orderId"], new_status)
+        if error:
+            return None, error
+
+    now =datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     conn = get_db()
     try:

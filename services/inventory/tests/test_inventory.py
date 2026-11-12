@@ -111,7 +111,7 @@ def test_reservation_atomicity(client):
 
     # Product 2 must also remain unchanged
     stock2 = client.get("/api/inventory/2")
-    assert stock2.json()["stock"] == 25
+    assert stock2.json()["stock"] == 20
 
 
 def test_release_stock(client):

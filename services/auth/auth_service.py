@@ -48,7 +48,17 @@ def _upgrade_legacy_hash(user_id: str, password: str) -> None:
     finally:
         conn.close()
 
+def _is_valid_email(email: str) -> bool:
+    local, sep, domain = email.partition("@")
+    return bool(sep and local and "." in domain and " " not in email)
+
+
 def register_user(req: RegisterRequest) -> UserResponse:
+    if not req.name.strip() or not req.email.strip() or not req.password:
+        raise HTTPException(status_code=400, detail="All fields are required.")
+    if not _is_valid_email(req.email.strip()):
+        raise HTTPException(status_code=400, detail="Invalid email format.")
+
     conn = get_db()
     cursor = conn.cursor()
     
@@ -82,6 +92,9 @@ def register_user(req: RegisterRequest) -> UserResponse:
     )
 
 def authenticate_user(req: LoginRequest):
+    if not req.email.strip() or not req.password:
+        raise HTTPException(status_code=400, detail="Email and password are required.")
+
     conn = get_db()
     cursor = conn.cursor()
     

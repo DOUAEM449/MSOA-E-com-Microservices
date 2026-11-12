@@ -40,7 +40,7 @@ Compte démo (mode mock) : `demo@msoa.shop` / `demo123`
 | Inventory | Amal | Python (FastAPI) | SQLite (`services/inventory/db/inventory.db`) |
 | Orders + Intégration | Douae (leader) | Python (FastAPI, client `httpx`) | SQLite (`services/orders/db/`) |
 | Payments | Taha | Python (FastAPI, client `httpx`) | SQLite (`services/payments/db/`) |
-| Shipping | Taha | Python (FastAPI, client `httpx`) | SQLite (`services/shipping/db/`) |
+| Shipping | Imane | Python (FastAPI, client `httpx`) | SQLite (`services/shipping/db/`) |
 
 Communications entre services et preuves de tests : voir [INTEGRATION.md](INTEGRATION.md).
 Réponses Part I et Q6 : voir [answers.md](answers.md).

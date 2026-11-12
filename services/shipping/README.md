@@ -39,4 +39,6 @@ The service starts on **http://localhost:8086**.
 - Duplicate shipment for the same order → 409
 - Status transitions (sequential only): `PREPARING → SHIPPED → IN_TRANSIT → DELIVERED`
 - Skipping a step or going backward → 409
+- Before each status change, Shipping asks Orders for the order; a `CANCELLED` order → 409 (shipment stays as it is)
 - If Orders service is unavailable → 503
+- Errors are always JSON `{"message": "..."}`; invalid or missing fields → 400

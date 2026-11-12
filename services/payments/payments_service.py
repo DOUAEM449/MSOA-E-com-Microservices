@@ -1,5 +1,6 @@
 import uuid
 import os
+import sqlite3
 from datetime import datetime, timezone
 
 import httpx
@@ -50,6 +51,8 @@ async def create_payment(order_id: str, method: str):
     1. Fetch the order from Orders service (must be PENDING_PAYMENT).
     2. Record the payment locally.
     3. PATCH the order status to PAID.
+       If that fails, the payment is deleted again (compensation),
+       so a payment never exists for an order that is not PAID.
     Returns (payment_dict, None) on success or (None, error_dict) on failure.
     """
 
@@ -57,7 +60,7 @@ async def create_payment(order_id: str, method: str):
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.get(f"{ORDERS_URL}/api/orders/{order_id}")
-    except (httpx.ConnectError, httpx.TimeoutException):
+    except httpx.TransportError:
         return None, (503, {"message": "Orders service is unavailable"})
 
     if resp.status_code == 404:
@@ -88,12 +91,16 @@ async def create_payment(order_id: str, method: str):
         amount = order["total"]
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        conn.execute(
-            """INSERT INTO payments (id, order_id, amount, method, status, created_at)
-               VALUES (?, ?, ?, ?, 'SUCCESS', ?)""",
-            (payment_id, order_id, amount, method, now),
-        )
-        conn.commit()
+        try:
+            conn.execute(
+                """INSERT INTO payments (id, order_id, amount, method, status, created_at)
+                   VALUES (?, ?, ?, ?, 'SUCCESS', ?)""",
+                (payment_id, order_id, amount, method, now),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            # Another request paid this order at the same moment (order_id is UNIQUE).
+            return None, (409, {"message": f"Payment already exists for order {order_id}"})
 
         payment = {
             "id": payment_id,
@@ -107,17 +114,40 @@ async def create_payment(order_id: str, method: str):
         conn.close()
 
     # --- 5. PATCH the order status to PAID ---
+    error = await _mark_order_paid(order_id)
+    if error:
+        # Compensation: the order is not PAID, so the payment must not stay recorded.
+        _delete_payment(payment_id)
+        print(f"[payments] PATCH to PAID failed for {order_id}, payment {payment_id} rolled back")
+        return None, error
+
+    return payment, None
+
+
+async def _mark_order_paid(order_id: str):
+    """PATCH the order to PAID. Returns None on success, or (status_code, body) on failure."""
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            patch_resp = await client.patch(
+            resp = await client.patch(
                 f"{ORDERS_URL}/api/orders/{order_id}/status",
                 json={"status": "PAID"},
             )
-        if patch_resp.status_code not in (200, 204):
-            # Payment recorded but could not update order — log a warning
-            print(f"[payments] WARNING: payment recorded but PATCH to PAID failed ({patch_resp.status_code})")
-    except (httpx.ConnectError, httpx.TimeoutException):
-        print(f"[payments] WARNING: payment recorded but Orders service unreachable for PATCH")
+    except httpx.TransportError:
+        return 503, {"message": "Orders service is unavailable, payment was not recorded"}
 
-    return payment, None
+    if resp.status_code in (200, 204):
+        return None
+    if resp.status_code == 409:
+        # e.g. the order was cancelled between our GET and this PATCH
+        return 409, {"message": f"Order {order_id} can no longer be paid"}
+    return 502, {"message": "Orders service could not mark the order as PAID, payment was not recorded"}
+
+
+def _delete_payment(payment_id: str):
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
+        conn.commit()
+    finally:
+        conn.close()
 

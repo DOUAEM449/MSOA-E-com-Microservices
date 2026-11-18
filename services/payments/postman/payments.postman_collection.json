@@ -1,0 +1,312 @@
+{
+  "info": {
+    "name": "MSOA - Payments Service",
+    "description": "Contract tests for the Payments service (see API_CONTRACT.md). Run in order: health → list → create → get → duplicate → errors.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health check - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Status UP\", () => pm.expect(pm.response.json().status).to.eql(\"UP\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "List payments - 200 (may be empty)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        }
+      }
+    },
+    {
+      "name": "Create payment - 400 missing orderId",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error schema {message}\", () => { const b = pm.response.json(); pm.expect(Object.keys(b)).to.eql([\"message\"]); pm.expect(b.message).to.be.a(\"string\").and.not.empty; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"CARD\"\n}",
+          "options": {"raw": {"language": "json"}}
+        }
+      }
+    },
+    {
+      "name": "Create payment - 400 missing method",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error schema {message}\", () => { const b = pm.response.json(); pm.expect(Object.keys(b)).to.eql([\"message\"]); pm.expect(b.message).to.be.a(\"string\").and.not.empty; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"order-demo-002\"\n}",
+          "options": {"raw": {"language": "json"}}
+        }
+      }
+    },
+    {
+      "name": "Create payment - 404 order not found",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+              "pm.test(\"Error schema {message}\", () => { const b = pm.response.json(); pm.expect(Object.keys(b)).to.eql([\"message\"]); pm.expect(b.message).to.be.a(\"string\").and.not.empty; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"nonexistent-order\",\n  \"method\": \"CARD\"\n}",
+          "options": {"raw": {"language": "json"}}
+        }
+      }
+    },
+    {
+      "name": "Create payment - 201 success",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// This test requires a real Orders service running with a PENDING_PAYMENT order.",
+              "// Set the orderId variable to a valid order ID before running."
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+              "const p = pm.response.json();",
+              "pm.test(\"Payment schema\", () => { pm.expect(p).to.have.all.keys(\"id\",\"orderId\",\"amount\",\"method\",\"status\",\"createdAt\"); });",
+              "pm.test(\"Status SUCCESS\", () => pm.expect(p.status).to.eql(\"SUCCESS\"));",
+              "pm.test(\"Method CARD\", () => pm.expect(p.method).to.eql(\"CARD\"));",
+              "pm.test(\"Amount is number\", () => pm.expect(p.amount).to.be.a(\"number\"));",
+              "pm.collectionVariables.set(\"paymentId\", p.id);",
+              "pm.collectionVariables.set(\"paidOrderId\", p.orderId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"CARD\"\n}",
+          "options": {"raw": {"language": "json"}}
+        }
+      }
+    },
+    {
+      "name": "Get payment by order - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "const p = pm.response.json();",
+              "pm.test(\"Payment schema\", () => { pm.expect(p).to.have.all.keys(\"id\",\"orderId\",\"amount\",\"method\",\"status\",\"createdAt\"); });",
+              "pm.test(\"Correct orderId\", () => pm.expect(p.orderId).to.eql(pm.collectionVariables.get(\"paidOrderId\")));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/order/{{paidOrderId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "order", "{{paidOrderId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get payment by order - 404 not found",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+              "pm.test(\"Error schema {message}\", () => { const b = pm.response.json(); pm.expect(Object.keys(b)).to.eql([\"message\"]); pm.expect(b.message).to.be.a(\"string\").and.not.empty; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/order/nonexistent-order",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "order", "nonexistent-order"]
+        }
+      }
+    },
+    {
+      "name": "Create payment - 409 duplicate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 409\", () => pm.response.to.have.status(409));",
+              "pm.test(\"Error schema {message}\", () => { const b = pm.response.json(); pm.expect(Object.keys(b)).to.eql([\"message\"]); pm.expect(b.message).to.include(\"already exists\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{paidOrderId}}\",\n  \"method\": \"CARD\"\n}",
+          "options": {"raw": {"language": "json"}}
+        }
+      }
+    },
+    {
+      "name": "List payments - 200 non-empty",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns non-empty array\", () => { const arr = pm.response.json(); pm.expect(arr).to.be.an(\"array\").and.have.length.above(0); });",
+              "pm.test(\"Each payment has required keys\", () => { pm.response.json().forEach(p => { pm.expect(p).to.have.all.keys(\"id\",\"orderId\",\"amount\",\"method\",\"status\",\"createdAt\"); }); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8085"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "description": "Set to a valid PENDING_PAYMENT order ID before running"
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "paidOrderId",
+      "value": ""
+    }
+  ]
+}

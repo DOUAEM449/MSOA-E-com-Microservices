@@ -10,17 +10,41 @@ Votre mission consiste à développer des microservices REST indépendants, puis
 
 ## 2. Installation
 
-Prérequis : Node.js et npm.
+Prérequis : Node.js, npm et Python 3.12.
 
 ```bash
 git clone https://github.com/ZOUHEIRBN/MSOA-E-com-Demo.git
 cd MSOA-E-com-Demo
 npm install
-npm run dev
- npx vite --host 0.0.0.0
 ```
 
-Ouvrez l'adresse affichée par Vite (généralement `http://localhost:5173`).
+Dans PowerShell, préparez et lancez les six microservices (la première exécution crée
+un environnement Python par service et installe uniquement les dépendances manquantes) :
+
+```powershell
+.\scripts\start-services.ps1 -Setup
+```
+
+Laissez cette fenêtre ouverte. Dans une deuxième fenêtre PowerShell, depuis la racine
+du dépôt, lancez le frontend :
+
+```powershell
+npm run dev
+```
+
+Ouvrez l'adresse affichée par Vite (généralement `http://localhost:5173`). Les API
+répondent sur les ports `8081` à `8086`; la documentation Swagger de chaque service
+est disponible sous `/docs`, par exemple `http://127.0.0.1:8082/docs`.
+
+Si les environnements sont déjà créés, relancez seulement :
+
+```powershell
+.\scripts\start-services.ps1
+```
+
+Si un service ne démarre pas, l'erreur apparaît dans sa fenêtre de terminal.
+`Failed to fetch` indique généralement que l'API correspondante ne répond pas;
+vérifiez d'abord le port et le terminal de cette API.
 
 Compte de démonstration en mode mock :
 

@@ -3,7 +3,7 @@
 | Property | Value |
 |----------|-------|
 | **Port** | 8086 |
-| **Owner** | Taha |
+| **Owner** | Imane |
 | **Stack** | Python 3 · FastAPI · SQLite |
 | **Database** | `db/shipping.db` |
 
@@ -26,6 +26,8 @@ python main.py
 ```
 
 The service starts on **http://localhost:8086**.
+
+The detailed contract is available in [API_CONTRACT.md](API_CONTRACT.md).
 
 ## Environment variables
 

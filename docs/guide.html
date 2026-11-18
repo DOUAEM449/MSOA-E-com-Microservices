@@ -152,7 +152,8 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
   <a href="#inventory">Amal · Inventory</a>
   <a href="#auth">Youssef · Auth</a>
   <a href="#catalog">Salma · Catalog</a>
-  <a href="#taha">Taha · Payments + Shipping</a>
+  <a href="#taha">Taha · Payments</a>
+  <a href="#imane">Imane · Shipping</a>
   <div class="grp">Qualité</div>
   <a href="#pieges">Pièges à éviter</a>
   <a href="#hacks">Astuces</a>
@@ -172,7 +173,8 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
     <span class="chip"><i style="background:var(--amal)">A</i>Amal · Inventory</span>
     <span class="chip"><i style="background:var(--youssef)">Y</i>Youssef · Auth</span>
     <span class="chip"><i style="background:var(--salma)">S</i>Salma · Catalog</span>
-    <span class="chip"><i style="background:var(--taha)">T</i>Taha · Payments + Shipping</span>
+    <span class="chip"><i style="background:var(--taha)">T</i>Taha · Payments</span>
+    <span class="chip"><i style="background:#9c36b5">I</i>Imane · Shipping</span>
   </div>
 </header>
 
@@ -234,7 +236,7 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
         <rect x="610" y="172" width="120" height="66" rx="12" fill="var(--taha)" opacity=".15" stroke="var(--taha)"/>
         <text x="670" y="200" text-anchor="middle" font-weight="800">Payments</text><text x="670" y="220" text-anchor="middle" class="sub">:8085 · Taha</text>
         <rect x="760" y="172" width="120" height="66" rx="12" fill="var(--taha)" opacity=".15" stroke="var(--taha)"/>
-        <text x="820" y="200" text-anchor="middle" font-weight="800">Shipping</text><text x="820" y="220" text-anchor="middle" class="sub">:8086 · Taha</text>
+        <text x="820" y="200" text-anchor="middle" font-weight="800">Shipping</text><text x="820" y="220" text-anchor="middle" class="sub">:8086 · Imane</text>
       </g>
 
       <g style="color:var(--accent)">
@@ -297,7 +299,8 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
     <tr><td><b style="color:var(--amal)">Amal</b></td><td>Inventory</td><td><code>services/inventory</code></td><td>rien</td><td>2</td></tr>
     <tr><td><b style="color:var(--youssef)">Youssef</b></td><td>Auth</td><td><code>services/auth</code></td><td>rien</td><td>3</td></tr>
     <tr><td><b style="color:var(--douae)">Douae</b> (leader)</td><td>Orders</td><td><code>services/orders</code></td><td>Catalog, Inventory</td><td>4</td></tr>
-    <tr><td><b style="color:var(--taha)">Taha</b></td><td>Payments + Shipping</td><td><code>services/payments</code>, <code>services/shipping</code></td><td>Orders</td><td>5 et 6</td></tr>
+    <tr><td><b style="color:var(--taha)">Taha</b></td><td>Payments</td><td><code>services/payments</code></td><td>Orders</td><td>5</td></tr>
+    <tr><td><b style="color:#9c36b5">Imane</b></td><td>Shipping</td><td><code>services/shipping</code></td><td>Orders</td><td>6</td></tr>
   </table></div>
   <div class="callout c-info"><b>Tout le monde commence en même temps</b>On n'attend pas les autres. Ceux qui dépendent d'un service pas encore prêt utilisent un <b>faux service</b> (un petit stub qui renvoie un JSON fixe) pour avancer. Voir <a href="#hacks">Astuces</a>.</div>
 </section>
@@ -326,7 +329,7 @@ footer{color:var(--ink-2);font-size:.85rem;border-top:1px solid var(--line);padd
     <li><b class="t">Squelette du service</b><span class="who">Chacun</span><br>Projet créé dans <code>services/&lt;nom&gt;/</code>, connexion à sa base SQLite (<code>db/&lt;nom&gt;.db</code>), CORS activé, route <code>GET /health</code> qui renvoie <code>{"status":"UP"}</code>, port correct.</li>
     <li><b class="t">Endpoints du contrat</b><span class="who">Chacun</span><br>Implémenter tous les endpoints de sa fiche, avec les règles métier et les codes d'erreur. Tester chaque route avec Postman, Thunder Client ou <code>curl</code>.</li>
     <li><b class="t">Brancher au frontend, un service à la fois</b><span class="who">Ordre : Catalog → Inventory → Auth → Orders → Payments → Shipping</span><br>Dans <code>backend.js</code>, passer uniquement son service en <code>"rest"</code>, vérifier dans le navigateur (onglet Network) que tout marche, puis passer au suivant. C'est la stratégie <b>Strangler Fig</b> (Q6) appliquée pour de vrai.</li>
-    <li><b class="t">Communication inter-services</b><span class="who">Douae, Taha (+ Amal, Salma en support)</span><br>Orders ↔ Catalog/Inventory, Payments → Orders, Shipping → Orders. Tester le scénario complet avec les 6 services en <code>"rest"</code>.</li>
+    <li><b class="t">Communication inter-services</b><span class="who">Douae, Taha, Imane (+ Amal, Salma en support)</span><br>Orders ↔ Catalog/Inventory, Payments → Orders, Shipping → Orders. Tester le scénario complet avec les 6 services en <code>"rest"</code>.</li>
     <li><b class="t">Tests des scénarios + preuves</b><span class="who">Tout le monde</span><br>Dérouler la <a href="#validation">checklist de validation</a>, faire des captures d'écran (frontend + Postman), les mettre dans <code>docs/tests/</code>.</li>
     <li><b class="t">Q6 + rendu final</b><span class="who">Douae</span><br>Rédiger la stratégie de migration, vérifier les README de chaque service, faire la démo complète, rendre le lien du repo.</li>
   </ol>
@@ -468,9 +471,7 @@ COMMIT;</code></pre>
 <!-- ============ TAHA ============ -->
 <section id="taha">
 <div class="card member" style="--c:var(--taha)">
-  <div class="head"><div class="avatar">T</div><div><h3>Taha — Payments + Shipping</h3><div class="meta">Ports 8085 et 8086 · <code>services/payments</code>, <code>services/shipping</code></div></div><span class="tag">2 services séparés</span></div>
-  <div class="callout c-warn"><b>Deux services, pas un seul</b>Même si une seule personne les code, ce sont deux applications séparées : deux projets, deux ports, deux bases. Ne pas les fusionner dans un seul serveur.</div>
-
+  <div class="head"><div class="avatar">T</div><div><h3>Taha — Payments</h3><div class="meta">Port 8085 · <code>services/payments</code></div></div><span class="tag">1 service</span></div>
   <h3 style="margin-top:6px">Payments — 8085</h3>
   <div class="tablewrap"><table>
     <tr><th>Méthode</th><th>Chemin</th><th>Ce qu'il fait</th></tr>
@@ -486,6 +487,13 @@ COMMIT;</code></pre>
     <li><code>PATCH {ORDERS}/api/orders/{orderId}/status</code> avec <code>{"status":"PAID"}</code>.</li>
   </ol>
 
+</div>
+</section>
+
+<!-- ============ IMANE ============ -->
+<section id="imane">
+<div class="card member" style="--c:#9c36b5">
+  <div class="head"><div class="avatar">I</div><div><h3>Imane — Shipping</h3><div class="meta">Port 8086 · <code>services/shipping</code></div></div><span class="tag">1 service</span></div>
   <h3>Shipping — 8086</h3>
   <div class="tablewrap"><table>
     <tr><th>Méthode</th><th>Chemin</th><th>Ce qu'il fait</th></tr>
@@ -496,7 +504,7 @@ COMMIT;</code></pre>
   </table></div>
   <p>À la création : vérifier que la commande est <code>PAID</code> (sinon 409), générer un <code>trackingNumber</code> unique (ex. <code>MSOA-7F3K2A</code>), statut <code>PREPARING</code>. Réponse : <code>{id, orderId, address:{name,address,city}, trackingNumber, status, createdAt, updatedAt}</code>.</p>
   <p>Transitions autorisées uniquement : <code>PREPARING → SHIPPED → IN_TRANSIT → DELIVERED</code>. Sauter une étape ou revenir en arrière → 409.</p>
-  <div class="callout c-warn"><b>Pièges spécifiques</b>Dans la base, l'adresse est à plat (<code>recipient_name</code>, <code>address</code>, <code>city</code>) : il faut la regrouper dans un objet <code>address</code> avec la clé <code>name</code>. Ne pas oublier de mettre à jour <code>updated_at</code> à chaque changement. Si Orders ne répond pas → 503, ne pas créer le paiement quand même.</div>
+  <div class="callout c-warn"><b>Pièges spécifiques</b>Dans la base, l'adresse est à plat (<code>recipient_name</code>, <code>address</code>, <code>city</code>) : il faut la regrouper dans un objet <code>address</code> avec la clé <code>name</code>. Ne pas oublier de mettre à jour <code>updated_at</code> à chaque changement. Si Orders ne répond pas → 503, ne pas créer l'expédition quand même.</div>
   <h4>Terminé quand…</h4>
   <ul class="dod"><li>Après un checkout, la commande passe à <code>PAID</code> et a une expédition</li><li>Le tracker avance étape par étape jusqu'à <code>DELIVERED</code></li><li>Payer deux fois la même commande est refusé</li></ul>
 </div>
@@ -563,7 +571,7 @@ COMMIT;</code></pre>
   </div>
 </section>
 
-<footer>Guide d'équipe MSOA · Lab 2 · Douae, Youssef, Taha, Amal, Salma. Source de vérité des contrats : le <code>README.md</code> du prof à la racine du repo.</footer>
+<footer>Guide d'équipe MSOA · Lab 2 · Douae, Youssef, Taha, Amal, Salma, Imane. Source de vérité des contrats : le <code>README.md</code> du prof à la racine du repo.</footer>
 </main>
 </div>
 

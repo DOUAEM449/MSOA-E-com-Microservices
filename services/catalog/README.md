@@ -56,6 +56,35 @@ The service is available at:
 | GET | `/products` | Retrieve all products |
 | GET | `/products/{product_id}` | Retrieve a product by ID |
 
+### Versioned API evolution
+
+| Contract | Endpoint |
+|---|---|
+| Legacy v1 | `GET /api/v1/products` and `GET /api/v1/products/{product_id}` |
+| Currency-aware v2 | `GET /api/v2/products` and `GET /api/v2/products/{product_id}` |
+
+The legacy endpoint remains available and returns a numeric `price`:
+
+```json
+{"id": 1, "name": "Lenovo ThinkPad E14", "category": "Laptops", "price": 8499, "image": "", "description": "Reliable 14-inch business laptop"}
+```
+
+The v2 endpoint returns an object containing the amount and ISO currency code:
+
+```json
+{"id": 1, "name": "Lenovo ThinkPad E14", "category": "Laptops", "price": {"amount": 8499, "currency": "MAD"}, "image": "", "description": "Reliable 14-inch business laptop"}
+```
+
+### Error format
+
+```json
+{"detail": "Product not found"}
+```
+
+- `200 OK`: successful read
+- `404 Not Found`: product ID does not exist
+- `422 Unprocessable Entity`: invalid path parameter
+
 The API returns JSON responses.
 
 Each product contains:

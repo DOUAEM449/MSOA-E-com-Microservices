@@ -22,6 +22,8 @@ The service listens on `0.0.0.0:8084` by default. Configuration is read from:
 
 Interactive API documentation is available at `/docs`.
 
+The detailed contract is available in [API_CONTRACT.md](API_CONTRACT.md).
+
 ## API
 
 - `GET /api/orders?userId=<id>` — list a user's orders, newest first.

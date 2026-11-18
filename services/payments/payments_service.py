@@ -7,7 +7,7 @@ import httpx
 
 from database import get_db
 
-ORDERS_URL = os.environ.get("ORDERS_URL", "http://localhost:8084")
+ORDERS_URL = os.environ.get("ORDERS_URL", "http://127.0.0.1:8084")
 TIMEOUT = 5.0  # seconds
 
 

@@ -26,6 +26,8 @@ python main.py
 
 The service starts on **http://localhost:8085**.
 
+The detailed contract is available in [API_CONTRACT.md](API_CONTRACT.md).
+
 ## Environment variables
 
 | Variable | Default | Description |

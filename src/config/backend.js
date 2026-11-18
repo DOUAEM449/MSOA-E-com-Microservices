@@ -9,12 +9,12 @@ const BACKEND_MODE = {
 };
 
 const API_URLS = {
-  AUTH: "http://localhost:8081",
-  CATALOG: "http://localhost:8082",
-  INVENTORY: "http://localhost:8083",
-  ORDERS: "http://localhost:8084",
-  PAYMENTS: "http://localhost:8085",
-  SHIPPING: "http://localhost:8086",
+  AUTH: "http://127.0.0.1:8081",
+  CATALOG: "http://127.0.0.1:8082",
+  INVENTORY: "http://127.0.0.1:8083",
+  ORDERS: "http://127.0.0.1:8084",
+  PAYMENTS: "http://127.0.0.1:8085",
+  SHIPPING: "http://127.0.0.1:8086",
 };
 
 export { BACKEND_MODE, API_URLS };

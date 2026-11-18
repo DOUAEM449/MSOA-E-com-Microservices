@@ -122,6 +122,10 @@ def _parse_product(product_id: int, response: httpx.Response) -> Tuple[str, floa
         product = response.json()
         name = product["name"]
         raw_price = product["price"]
+        # Support both Catalog API v1 (numeric price) and v2
+        # ({amount, currency}) during an independent microservice migration.
+        if isinstance(raw_price, dict):
+            raw_price = raw_price["amount"]
         price_decimal = Decimal(str(raw_price))
         price = float(price_decimal)
         if (

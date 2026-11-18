@@ -13,16 +13,27 @@ export async function apiRequest(baseUrl, path, options = {}) {
     // No active session
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token
-        ? { Authorization: `Bearer ${token}` }
-        : {}),
-      ...options.headers
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token
+          ? { Authorization: `Bearer ${token}` }
+          : {}),
+        ...options.headers
+      }
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        `Cannot reach ${baseUrl}. Start the backend service and check its CORS settings.`,
+        { cause: error }
+      );
     }
-  });
+    throw error;
+  }
 
   if (response.status === 204) return null;
 

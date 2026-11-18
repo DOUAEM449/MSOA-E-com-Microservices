@@ -35,6 +35,8 @@ python -m uvicorn main:app --reload --port 8083
 
 http://localhost:8083/docs
 
+The detailed contract is available in [API_CONTRACT.md](API_CONTRACT.md).
+
 ## 7. REST Endpoints
 
 | Method | Endpoint                   |

@@ -37,10 +37,10 @@ def create_app(
 ) -> FastAPI:
     resolved_database_path = Path(database_path or DATABASE_PATH)
     resolved_catalog_url = (catalog_url or os.getenv(
-        "CATALOG_URL", "http://localhost:8082"
+        "CATALOG_URL", "http://127.0.0.1:8082"
     )).rstrip("/")
     resolved_inventory_url = (inventory_url or os.getenv(
-        "INVENTORY_URL", "http://localhost:8083"
+        "INVENTORY_URL", "http://127.0.0.1:8083"
     )).rstrip("/")
 
     @asynccontextmanager
@@ -67,7 +67,14 @@ def create_app(
     )
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=[
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174",
+            "http://127.0.0.1:5175",
+        ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],

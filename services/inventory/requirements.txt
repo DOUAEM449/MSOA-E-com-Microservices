@@ -3,3 +3,5 @@ uvicorn[standard]
 pydantic
 pytest
 httpx
+grpcio>=1.82.1
+protobuf>=7.35

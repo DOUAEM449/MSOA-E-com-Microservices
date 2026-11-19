@@ -4,7 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List
 
+import logging
+import os
+
+import grpc_server
 from database import get_connection, initialize_database
+
+logger = logging.getLogger("uvicorn.error")  # shown in the uvicorn console
 
 
 # =====================================
@@ -45,6 +51,31 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     initialize_database()
+    _start_grpc_server()
+
+
+# gRPC interface (LAB 4), served next to REST on port 50051 by default.
+# Set INVENTORY_GRPC_ENABLED=0 to run REST only.
+_grpc_server = None
+
+
+def _start_grpc_server():
+    global _grpc_server
+    if os.getenv("INVENTORY_GRPC_ENABLED", "1") == "0":
+        return
+    try:
+        _grpc_server = grpc_server.create_server()
+        _grpc_server.start()
+        logger.info("Inventory gRPC server listening on port %s", _grpc_server.bound_port)
+    except RuntimeError:
+        _grpc_server = None
+        logger.exception("gRPC server not started; REST API is still available")
+
+
+@app.on_event("shutdown")
+def shutdown():
+    if _grpc_server is not None:
+        _grpc_server.stop(grace=2)
 
 
 # =====================================

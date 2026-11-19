@@ -1,0 +1,45 @@
+// Service contract between Orders (gRPC client) and Inventory (gRPC server).
+// LAB 4 - scenario 1: high-performance, synchronous communication.
+//
+// Shared by both services. After any change, regenerate the stubs:
+//   python proto/generate.py
+syntax = "proto3";
+
+package inventory;
+
+service InventoryService {
+  // Is `quantity` units of one product available?
+  // Errors: INVALID_ARGUMENT (bad id / quantity), NOT_FOUND (unknown product).
+  rpc CheckAvailability (AvailabilityRequest) returns (AvailabilityResponse);
+
+  // Atomically reserve every line, or nothing.
+  // Errors: INVALID_ARGUMENT, FAILED_PRECONDITION (not enough stock / unknown product).
+  rpc ReserveStock (StockRequest) returns (StockResponse);
+
+  // Give reserved stock back (order cancelled or not saved).
+  // Errors: INVALID_ARGUMENT, NOT_FOUND (unknown product).
+  rpc ReleaseStock (StockRequest) returns (StockResponse);
+}
+
+message AvailabilityRequest {
+  string productId = 1;
+  int32 quantity = 2;
+}
+
+message AvailabilityResponse {
+  bool available = 1;
+  int32 availableQuantity = 2;
+}
+
+message StockItem {
+  string productId = 1;
+  int32 quantity = 2;
+}
+
+message StockRequest {
+  repeated StockItem items = 1;
+}
+
+message StockResponse {
+  bool success = 1;
+}

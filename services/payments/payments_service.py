@@ -1,13 +1,13 @@
 import uuid
-import os
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional, Tuple, Union
 
 import httpx
 
-from database import get_db
+from database import get_db, DatabasePath
 
-ORDERS_URL = os.environ.get("ORDERS_URL", "http://127.0.0.1:8084")
 TIMEOUT = 5.0  # seconds
 
 
@@ -23,9 +23,9 @@ def _row_to_dict(row):
     }
 
 
-def list_payments():
+def list_payments(database_path: DatabasePath) -> list:
     """Return all payments."""
-    conn = get_db()
+    conn = get_db(database_path)
     try:
         rows = conn.execute("SELECT * FROM payments ORDER BY created_at DESC").fetchall()
         return [_row_to_dict(r) for r in rows]
@@ -33,9 +33,9 @@ def list_payments():
         conn.close()
 
 
-def get_payment_by_order(order_id: str):
+def get_payment_by_order(database_path: DatabasePath, order_id: str) -> Optional[dict]:
     """Return the payment for a given order, or None."""
-    conn = get_db()
+    conn = get_db(database_path)
     try:
         row = conn.execute(
             "SELECT * FROM payments WHERE order_id = ?", (order_id,)
@@ -45,7 +45,13 @@ def get_payment_by_order(order_id: str):
         conn.close()
 
 
-async def create_payment(order_id: str, method: str):
+async def create_payment(
+    database_path: DatabasePath,
+    http_client: httpx.AsyncClient,
+    orders_url: str,
+    order_id: str,
+    method: str,
+) -> Tuple[Optional[dict], Optional[Tuple[int, dict]]]:
     """
     Create a payment for the given order.
     1. Fetch the order from Orders service (must be PENDING_PAYMENT).
@@ -53,13 +59,12 @@ async def create_payment(order_id: str, method: str):
     3. PATCH the order status to PAID.
        If that fails, the payment is deleted again (compensation),
        so a payment never exists for an order that is not PAID.
-    Returns (payment_dict, None) on success or (None, error_dict) on failure.
+    Returns (payment_dict, None) on success or (None, error_tuple) on failure.
     """
 
     # --- 1. Fetch the order from Orders service ---
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(f"{ORDERS_URL}/api/orders/{order_id}")
+        resp = await http_client.get(f"{orders_url}/api/orders/{order_id}")
     except httpx.TransportError:
         return None, (503, {"message": "Orders service is unavailable"})
 
@@ -78,7 +83,7 @@ async def create_payment(order_id: str, method: str):
         )
 
     # --- 3. Check for duplicate payment ---
-    conn = get_db()
+    conn = get_db(database_path)
     try:
         existing = conn.execute(
             "SELECT id FROM payments WHERE order_id = ?", (order_id,)
@@ -114,24 +119,27 @@ async def create_payment(order_id: str, method: str):
         conn.close()
 
     # --- 5. PATCH the order status to PAID ---
-    error = await _mark_order_paid(order_id)
+    error = await _mark_order_paid(http_client, orders_url, order_id)
     if error:
         # Compensation: the order is not PAID, so the payment must not stay recorded.
-        _delete_payment(payment_id)
+        _delete_payment(database_path, payment_id)
         print(f"[payments] PATCH to PAID failed for {order_id}, payment {payment_id} rolled back")
         return None, error
 
     return payment, None
 
 
-async def _mark_order_paid(order_id: str):
+async def _mark_order_paid(
+    http_client: httpx.AsyncClient,
+    orders_url: str,
+    order_id: str,
+) -> Optional[Tuple[int, dict]]:
     """PATCH the order to PAID. Returns None on success, or (status_code, body) on failure."""
     try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.patch(
-                f"{ORDERS_URL}/api/orders/{order_id}/status",
-                json={"status": "PAID"},
-            )
+        resp = await http_client.patch(
+            f"{orders_url}/api/orders/{order_id}/status",
+            json={"status": "PAID"},
+        )
     except httpx.TransportError:
         return 503, {"message": "Orders service is unavailable, payment was not recorded"}
 
@@ -143,11 +151,10 @@ async def _mark_order_paid(order_id: str):
     return 502, {"message": "Orders service could not mark the order as PAID, payment was not recorded"}
 
 
-def _delete_payment(payment_id: str):
-    conn = get_db()
+def _delete_payment(database_path: DatabasePath, payment_id: str) -> None:
+    conn = get_db(database_path)
     try:
         conn.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
         conn.commit()
     finally:
         conn.close()
-

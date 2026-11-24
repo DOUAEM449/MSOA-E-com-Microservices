@@ -2,13 +2,18 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $services = @("auth", "catalog", "inventory", "orders", "payments", "shipping")
+# Lab 4: the Analytics service is set up only once its folder exists (Amal creates it).
+if (Test-Path (Join-Path $repoRoot "services\analytics\requirements.txt")) {
+    $services += "analytics"
+}
 $requiredModules = @{
     auth = @("fastapi", "uvicorn", "pydantic", "bcrypt")
     catalog = @("fastapi", "uvicorn", "pydantic")
-    inventory = @("fastapi", "uvicorn", "pydantic", "pytest", "httpx")
-    orders = @("fastapi", "uvicorn", "httpx", "pydantic")
-    payments = @("fastapi", "uvicorn", "httpx", "pydantic")
-    shipping = @("fastapi", "uvicorn", "httpx", "pydantic")
+    inventory = @("fastapi", "uvicorn", "pydantic", "pytest", "httpx", "grpc", "grpc_tools")
+    orders = @("fastapi", "uvicorn", "httpx", "pydantic", "grpc", "grpc_tools", "confluent_kafka")
+    payments = @("fastapi", "uvicorn", "httpx", "pydantic", "pika", "confluent_kafka")
+    shipping = @("fastapi", "uvicorn", "httpx", "pydantic", "pika", "confluent_kafka")
+    analytics = @("fastapi", "uvicorn", "pydantic", "confluent_kafka")
 }
 
 & py -3.12 --version
@@ -60,4 +65,6 @@ foreach ($service in $services) {
     }
 }
 
-Write-Host "All six service environments are ready."
+& (Join-Path $PSScriptRoot "gen-proto.ps1")
+
+Write-Host "All service environments are ready: $($services -join ', ')."

@@ -16,6 +16,10 @@ $services = @(
     @{ Name = "payments"; Port = 8085; Check = "/health" },
     @{ Name = "shipping"; Port = 8086; Check = "/health" }
 )
+# Lab 4: the Analytics service is started only once its folder exists (Amal creates it).
+if (Test-Path (Join-Path $repoRoot "services\analytics\main.py")) {
+    $services += @{ Name = "analytics"; Port = 8087; Check = "/health" }
+}
 
 if ($Setup) {
     & (Join-Path $PSScriptRoot "setup-services.ps1")

@@ -174,7 +174,7 @@ dl.gloss dd{margin:0;color:var(--muted)}
     <!-- gRPC -->
     <path d="M120 190 L120 286" stroke="var(--grpc)" stroke-width="2.5" fill="none" marker-start="url(#aB)" marker-end="url(#aB)"/>
     <text x="130" y="236" class="lbl" fill="var(--grpc)">gRPC :50051</text>
-    <text x="130" y="252" class="small">CheckStock / Reserve / Release</text>
+    <text x="130" y="252" class="small">CheckAvailability / Reserve / Release</text>
     <rect x="40" y="288" width="170" height="58" rx="8" fill="var(--grpc-soft)" stroke="var(--grpc)"/>
     <text x="125" y="313" text-anchor="middle" font-weight="600">Inventory :8083</text>
     <text x="125" y="332" text-anchor="middle" class="small">+ serveur gRPC</text>
@@ -252,25 +252,23 @@ dl.gloss dd{margin:0;color:var(--muted)}
     <li>Contrat <b>strict o typé</b>: ila chi wahed bdel champ, l-code ma ykhdemch, donc ma kaynch erreurs khfiyin.</li>
   </ul>
 
-  <h3>L-contrat: <code>proto/inventory.proto</code> (Youssef o Taha ykteboh m3a ba3d, nhar 1)</h3>
+  <h3>L-contrat: <code>proto/inventory.proto</code> (Youssef o Taha)</h3>
 <pre><code>syntax = "proto3";
 package inventory;
 
 service InventoryService {
-  rpc CheckStock   (StockRequest) returns (CheckStockReply);
-  rpc ReserveStock (StockRequest) returns (OperationReply);
-  rpc ReleaseStock (StockRequest) returns (OperationReply);
+  rpc CheckAvailability (AvailabilityRequest) returns (AvailabilityResponse);
+  rpc ReserveStock      (StockRequest)        returns (StockResponse);
+  rpc ReleaseStock      (StockRequest)        returns (StockResponse);
 }
 
-message StockItem       { int32 product_id = 1; int32 quantity = 2; }
-message StockRequest    { repeated StockItem items = 1; }
-message ItemAvailability{ int32 product_id = 1; int32 requested = 2;
-                          int32 available = 3; bool in_stock = 4; }
-message CheckStockReply { bool all_available = 1; repeated ItemAvailability items = 2; }
-message OperationReply  { bool success = 1; string message = 2; }</code></pre>
-  <p>Génération dyal l-code Python (f kol service li kaykhdem b gRPC):</p>
-<pre><code>pip install grpcio grpcio-tools
-python -m grpc_tools.protoc -I ../../proto --python_out=. --grpc_python_out=. ../../proto/inventory.proto</code></pre>
+message AvailabilityRequest  { string productId = 1; int32 quantity = 2; }
+message AvailabilityResponse { bool available = 1; int32 availableQuantity = 2; }
+message StockItem            { string productId = 1; int32 quantity = 2; }
+message StockRequest         { repeated StockItem items = 1; }
+message StockResponse        { bool success = 1; }</code></pre>
+  <p>L-code Python dyal gRPC (<code>inventory_pb2.py</code>) déjà commité. Ila tbedel l-<code>.proto</code>:</p>
+<pre><code>python proto/generate.py</code></pre>
 
   <div class="people">
     <div class="person">

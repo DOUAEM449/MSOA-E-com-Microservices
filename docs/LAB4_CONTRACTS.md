@@ -160,6 +160,6 @@ Rules:
 
 | Requirement | Test |
 |---|---|
-| High performance (gRPC) | Benchmark 1000 `ReserveStock`/`CheckStock` calls vs 1000 REST calls; report average latency |
+| High performance (gRPC) | Benchmark 1000 `CheckAvailability`/`ReserveStock` calls (`proto/demo_grpc.py`, or `INVENTORY_TRANSPORT=rest` vs `grpc`) vs 1000 REST calls; report average latency |
 | No lost shipments (RabbitMQ) | Handout H3 step 4: normal delivery, Shipping offline (Ready=1), crash before ACK (Unacked→Ready→redelivered) |
 | Retention and replay (Kafka) | Create orders while Analytics is stopped, start it, it sees them; call replay, totals are identical |

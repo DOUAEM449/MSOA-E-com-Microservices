@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from inventory_client import GrpcInventoryGateway, RestInventoryGateway
 from database import DATABASE_PATH, DatabasePath, initialize_database
 from schemas import CreateOrderInput, OrderStatus, UpdateStatusInput
 from service import (
@@ -34,6 +35,8 @@ def create_app(
     catalog_url: Optional[str] = None,
     inventory_url: Optional[str] = None,
     http_transport: Optional[httpx.AsyncBaseTransport] = None,
+    inventory_transport: Optional[str] = None,
+    inventory_grpc_address: Optional[str] = None,
 ) -> FastAPI:
     resolved_database_path = Path(database_path or DATABASE_PATH)
     resolved_catalog_url = (catalog_url or os.getenv(
@@ -42,6 +45,15 @@ def create_app(
     resolved_inventory_url = (inventory_url or os.getenv(
         "INVENTORY_URL", "http://127.0.0.1:8083"
     )).rstrip("/")
+    # LAB 4: Orders -> Inventory uses gRPC by default; "rest" keeps the old calls.
+    resolved_inventory_transport = (inventory_transport or os.getenv(
+        "INVENTORY_TRANSPORT", "grpc"
+    )).lower()
+    if resolved_inventory_transport not in ("grpc", "rest"):
+        raise RuntimeError("INVENTORY_TRANSPORT must be 'grpc' or 'rest'.")
+    resolved_inventory_grpc_address = inventory_grpc_address or os.getenv(
+        "INVENTORY_GRPC_ADDR", "127.0.0.1:50051"
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -54,9 +66,20 @@ def create_app(
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
             transport=http_transport,
         )
+        if resolved_inventory_transport == "grpc":
+            app.state.inventory = GrpcInventoryGateway(
+                resolved_inventory_grpc_address,
+                timeout=float(os.getenv("INVENTORY_GRPC_TIMEOUT", "2.0")),
+            )
+        else:
+            app.state.inventory = RestInventoryGateway(
+                app.state.http_client, resolved_inventory_url
+            )
+        logger.info("Orders -> Inventory transport: %s", resolved_inventory_transport)
         try:
             yield
         finally:
+            await app.state.inventory.close()
             await app.state.http_client.aclose()
 
     application = FastAPI(
@@ -139,7 +162,7 @@ def create_app(
             application.state.database_path,
             application.state.http_client,
             application.state.catalog_url,
-            application.state.inventory_url,
+            application.state.inventory,
             payload,
         )
 
@@ -149,8 +172,7 @@ def create_app(
     ) -> dict:
         return await update_order_status(
             application.state.database_path,
-            application.state.http_client,
-            application.state.inventory_url,
+            application.state.inventory,
             order_id,
             OrderStatus(payload.status),
         )
@@ -159,8 +181,7 @@ def create_app(
     async def post_cancel_order(order_id: str) -> dict:
         return await cancel_order(
             application.state.database_path,
-            application.state.http_client,
-            application.state.inventory_url,
+            application.state.inventory,
             order_id,
         )
 

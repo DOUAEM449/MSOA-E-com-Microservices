@@ -4,7 +4,7 @@ import math
 import sqlite3
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import httpx
@@ -12,6 +12,9 @@ from fastapi import HTTPException
 
 from database import DatabasePath, get_connection
 from schemas import CreateOrderInput, OrderStatus
+
+if TYPE_CHECKING:
+    from inventory_client import InventoryGateway
 
 
 logger = logging.getLogger(__name__)
@@ -230,7 +233,7 @@ async def create_order(
     database_path: DatabasePath,
     client: httpx.AsyncClient,
     catalog_url: str,
-    inventory_url: str,
+    inventory: "InventoryGateway",
     payload: CreateOrderInput,
 ) -> Dict[str, Any]:
     quantities: Dict[int, int] = {}
@@ -270,7 +273,8 @@ async def create_order(
     if not math.isfinite(total):
         raise HTTPException(status_code=400, detail="Order total is invalid.")
 
-    await _reserve_inventory(client, inventory_url, inventory_items)
+    await inventory.ensure_available(inventory_items)
+    await inventory.reserve(inventory_items)
     order_id = str(uuid4())
     created_at = _created_at()
     try:
@@ -312,7 +316,7 @@ async def create_order(
     except sqlite3.Error:
         logger.exception("Could not persist order %s", order_id)
         try:
-            await _release_inventory(client, inventory_url, inventory_items)
+            await inventory.release(inventory_items)
         except HTTPException:
             logger.exception(
                 "Could not compensate inventory reservation for order %s",
@@ -355,13 +359,12 @@ def _load_order_and_status(
 
 async def update_order_status(
     database_path: DatabasePath,
-    client: httpx.AsyncClient,
-    inventory_url: str,
+    inventory: "InventoryGateway",
     order_id: str,
     new_status: OrderStatus,
 ) -> Dict[str, Any]:
     if new_status == OrderStatus.CANCELLED:
-        return await cancel_order(database_path, client, inventory_url, order_id)
+        return await cancel_order(database_path, inventory, order_id)
 
     with get_connection(database_path) as connection:
         connection.execute("BEGIN IMMEDIATE")
@@ -383,8 +386,7 @@ async def update_order_status(
 
 async def cancel_order(
     database_path: DatabasePath,
-    client: httpx.AsyncClient,
-    inventory_url: str,
+    inventory: "InventoryGateway",
     order_id: str,
 ) -> Dict[str, Any]:
     with get_connection(database_path) as connection:
@@ -406,7 +408,7 @@ async def cancel_order(
         for item in order["items"]
     ]
     try:
-        await _release_inventory(client, inventory_url, items)
+        await inventory.release(items)
     except HTTPException:
         try:
             with get_connection(database_path) as connection:

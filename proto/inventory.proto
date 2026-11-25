@@ -1,36 +1,38 @@
-// Lab 4 — gRPC contract between Orders (client) and Inventory (server).
-// Owners: Youssef (server side) and Taha (client side). Change it only together.
+// Service contract between Orders (gRPC client) and Inventory (gRPC server).
+// LAB 4 - scenario 1: high-performance, synchronous communication.
 //
-// Server: Inventory service, port 50051 (env INVENTORY_GRPC_PORT)
-// Client: Orders service, target 127.0.0.1:50051 (env INVENTORY_GRPC_TARGET)
-//
-// Generate the Python code with:  .\scripts\gen-proto.ps1
-// (writes inventory_pb2.py and inventory_pb2_grpc.py into services/inventory and services/orders)
-//
-// Error mapping (gRPC status -> HTTP status returned by Orders):
-//   NOT_FOUND            product does not exist        -> 404
-//   FAILED_PRECONDITION  not enough stock              -> 409
-//   INVALID_ARGUMENT     bad quantity / empty items     -> 400
-//   UNAVAILABLE          Inventory is down              -> 503
-//   DEADLINE_EXCEEDED    no answer within the deadline  -> 504
-
+// Shared by both services. After any change, regenerate the stubs:
+//   python proto/generate.py
 syntax = "proto3";
 
 package inventory;
 
 service InventoryService {
-  // Read-only: says for each item whether enough stock is available.
-  rpc CheckStock (StockRequest) returns (CheckStockReply);
+  // Is `quantity` units of one product available?
+  // Errors: INVALID_ARGUMENT (bad id / quantity), NOT_FOUND (unknown product).
+  rpc CheckAvailability (AvailabilityRequest) returns (AvailabilityResponse);
 
-  // Atomically decreases stock for all items (all or nothing).
-  rpc ReserveStock (StockRequest) returns (OperationReply);
+  // Atomically reserve every line, or nothing.
+  // Errors: INVALID_ARGUMENT, FAILED_PRECONDITION (not enough stock / unknown product).
+  rpc ReserveStock (StockRequest) returns (StockResponse);
 
-  // Gives stock back (e.g. order cancelled or later step failed).
-  rpc ReleaseStock (StockRequest) returns (OperationReply);
+  // Give reserved stock back (order cancelled or not saved).
+  // Errors: INVALID_ARGUMENT, NOT_FOUND (unknown product).
+  rpc ReleaseStock (StockRequest) returns (StockResponse);
+}
+
+message AvailabilityRequest {
+  string productId = 1;
+  int32 quantity = 2;
+}
+
+message AvailabilityResponse {
+  bool available = 1;
+  int32 availableQuantity = 2;
 }
 
 message StockItem {
-  int32 product_id = 1;
+  string productId = 1;
   int32 quantity = 2;
 }
 
@@ -38,19 +40,6 @@ message StockRequest {
   repeated StockItem items = 1;
 }
 
-message ItemAvailability {
-  int32 product_id = 1;
-  int32 requested = 2;
-  int32 available = 3;
-  bool in_stock = 4;
-}
-
-message CheckStockReply {
-  bool all_available = 1;
-  repeated ItemAvailability items = 2;
-}
-
-message OperationReply {
+message StockResponse {
   bool success = 1;
-  string message = 2;
 }

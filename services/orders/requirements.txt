@@ -1,6 +1,7 @@
 fastapi>=0.115,<1.0
 httpx>=0.27,<1.0
 uvicorn[standard]>=0.30,<1.0
-grpcio>=1.66,<2.0
-grpcio-tools>=1.66,<2.0
+grpcio>=1.82.1
+protobuf>=7.35
+grpcio-tools
 confluent-kafka>=2.5,<3.0

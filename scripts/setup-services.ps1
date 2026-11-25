@@ -65,6 +65,4 @@ foreach ($service in $services) {
     }
 }
 
-& (Join-Path $PSScriptRoot "gen-proto.ps1")
-
 Write-Host "All service environments are ready: $($services -join ', ')."

@@ -33,8 +33,10 @@ Environment variables (with defaults, so nobody needs a `.env` locally):
 
 | Variable | Default | Used by |
 |---|---|---|
-| `INVENTORY_GRPC_PORT` | `50051` | inventory |
-| `INVENTORY_GRPC_TARGET` | `127.0.0.1:50051` | orders |
+| `INVENTORY_GRPC_ENABLED` | `1` (`0` = REST only) | inventory |
+| `INVENTORY_GRPC_ADDR` | `127.0.0.1:50051` | orders |
+| `INVENTORY_TRANSPORT` | `grpc` (or `rest`) | orders |
+| `INVENTORY_GRPC_TIMEOUT` | `2.0` seconds | orders |
 | `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/%2F` | payments, shipping |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | orders, payments, shipping, analytics |
 | `KAFKA_TOPIC` | `ecommerce-events` | orders, payments, shipping, analytics |
@@ -43,11 +45,11 @@ New Python libraries (already added to each `requirements.txt`; re-run `.\script
 
 | Library | Services |
 |---|---|
-| `grpcio`, `grpcio-tools` | inventory, orders |
+| `grpcio`, `protobuf`, `grpcio-tools` | inventory, orders |
 | `pika` | payments, shipping |
 | `confluent-kafka` | orders, payments, shipping (analytics: Amal adds it) |
 
-After setup, generate the gRPC code with `.\scripts\gen-proto.ps1`. The generated `*_pb2.py` / `*_pb2_grpc.py` files are git-ignored: everyone generates them locally.
+The generated gRPC code (`inventory_pb2.py`, `inventory_pb2_grpc.py`) is committed in `services/inventory` and `services/orders`. After changing the `.proto`, regenerate it with `python proto/generate.py` (details in `proto/README.md`).
 
 ## 1. gRPC — Orders → Inventory
 
@@ -55,14 +57,16 @@ Full contract: [`proto/inventory.proto`](../proto/inventory.proto).
 
 | RPC | Replaces REST call | When Orders calls it |
 |---|---|---|
-| `CheckStock` | `POST /api/inventory/check` | before creating an order (optional pre-check) |
+| `CheckAvailability` | `GET /api/inventory/{productId}` / `POST /api/inventory/check` | checks one product and quantity before the order is accepted |
 | `ReserveStock` | `POST /api/inventory/reserve` | when creating an order |
 | `ReleaseStock` | `POST /api/inventory/release` | when order creation fails after reserving, or on cancel |
 
 Rules:
 - Orders creates **one** gRPC channel at startup and reuses it (like the existing `httpx.AsyncClient`).
-- Every call has a **deadline of 2 s**.
+- Every call has a **deadline of 2 s** (`INVENTORY_GRPC_TIMEOUT`). `CheckAvailability` is retried once on `UNAVAILABLE`.
+- `productId` is a string in the `.proto`, so the same contract works whatever the id format.
 - Error mapping on the Orders side: `NOT_FOUND`→404, `FAILED_PRECONDITION`→409, `INVALID_ARGUMENT`→400, `UNAVAILABLE`→503, `DEADLINE_EXCEEDED`→504.
+- `INVENTORY_TRANSPORT=rest` switches Orders back to the REST calls (useful for the REST vs gRPC benchmark).
 - Inventory REST endpoints stay available (frontend and tests use them). REST and gRPC must call the **same** business functions.
 
 ## 2. RabbitMQ — Payments → Shipping

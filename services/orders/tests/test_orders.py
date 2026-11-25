@@ -41,6 +41,7 @@ def make_client(
         catalog_url="http://catalog.test",
         inventory_url="http://inventory.test",
         http_transport=httpx.MockTransport(upstream),
+        inventory_transport="rest",
     )
     return TestClient(app)
 

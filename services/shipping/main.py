@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,10 +7,24 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from routes import router
+from events import close_producer
 
-app = FastAPI(title="Shipping Service", version="1.0.0")
 
-# ── CORS ─────────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        close_producer()
+
+
+app = FastAPI(
+    title="Shipping Service",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,7 +40,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-# ── Routes ───────────────────────────────────────────────
+# Routes
 app.include_router(router)
 
 
@@ -33,13 +49,16 @@ def health():
     return {"status": "UP"}
 
 
-# ── Error handlers — always return {"message": "..."} ─────
+# Error handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    """Missing/invalid fields → 400 {"message"} (FastAPI's default is 422 {"detail"})."""
+    """Missing/invalid fields -> 400 {"message": "..."}."""
     first = exc.errors()[0] if exc.errors() else {}
-    field = ".".join(str(p) for p in first.get("loc", ()) if p != "body")
+    field = ".".join(
+        str(part) for part in first.get("loc", ()) if part != "body"
+    )
     message = first.get("msg", "Invalid request")
+
     return JSONResponse(
         status_code=400,
         content={"message": f"{field}: {message}" if field else message},
@@ -48,9 +67,14 @@ async def validation_exception_handler(request, exc):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
-    """Unknown route (404), wrong method (405)… → {"message"} instead of {"detail"}."""
+    """Return {"message": "..."} instead of FastAPI's default {"detail": "..."}."""
     message = exc.detail if isinstance(exc.detail, str) else "Request failed"
-    return JSONResponse(status_code=exc.status_code, content={"message": message}, headers=exc.headers)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": message},
+        headers=exc.headers,
+    )
 
 
 @app.exception_handler(Exception)
@@ -61,10 +85,9 @@ async def generic_exception_handler(request, exc):
     )
 
 
-# ── Run ──────────────────────────────────────────────────
+# Run
 if __name__ == "__main__":
     import uvicorn
 
     print("[shipping] Starting on port 8086...")
     uvicorn.run(app, host="0.0.0.0", port=8086)
-

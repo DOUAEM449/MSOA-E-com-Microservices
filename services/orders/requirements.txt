@@ -4,4 +4,4 @@ uvicorn[standard]>=0.30,<1.0
 grpcio>=1.82.1
 protobuf>=7.35
 grpcio-tools
-confluent-kafka>=2.5,<3.0
+confluent-kafka>=2.6,<3.0

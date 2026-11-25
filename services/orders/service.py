@@ -12,6 +12,7 @@ from fastapi import HTTPException
 
 from database import DatabasePath, get_connection
 from schemas import CreateOrderInput, OrderStatus
+from events import publish_event
 
 if TYPE_CHECKING:
     from inventory_client import InventoryGateway
@@ -333,7 +334,29 @@ async def create_order(
             status_code=500,
             detail="Order could not be saved. Reserved stock was released.",
         )
-    return get_order(database_path, order_id)
+
+    order = get_order(database_path, order_id)
+
+    # Lab 4 (Kafka): publish OrderCreated only after the order is persisted.
+    publish_event(
+        event_type="OrderCreated",
+        source="orders",
+        order_id=order_id,
+        data={
+            "userId": order["userId"],
+            "total": order["total"],
+            "itemsCount": len(order["items"]),
+            "items": [
+                {
+                    "productId": item["productId"],
+                    "quantity": item["quantity"],
+                    "price": item["price"],
+                }
+                for item in order["items"]
+            ],
+        },
+    )
+    return order
 
 
 def _load_order_and_status(
@@ -366,6 +389,7 @@ async def update_order_status(
     if new_status == OrderStatus.CANCELLED:
         return await cancel_order(database_path, inventory, order_id)
 
+    previous_status = None
     with get_connection(database_path) as connection:
         connection.execute("BEGIN IMMEDIATE")
         _, current_status = _load_order_and_status(connection, order_id)
@@ -377,11 +401,22 @@ async def update_order_status(
                     status_code=409,
                     detail=f"Invalid status transition: {current_status.value} to {new_status.value}.",
                 )
+            previous_status = current_status.value
             connection.execute(
                 "UPDATE orders SET status = ? WHERE id = ?",
                 (new_status.value, order_id),
             )
-    return get_order(database_path, order_id)
+    order = get_order(database_path, order_id)
+
+    # Lab 4 (Kafka): publish only when the status actually changed.
+    if previous_status is not None:
+        publish_event(
+            event_type="OrderStatusChanged",
+            source="orders",
+            order_id=order_id,
+            data={"from": previous_status, "to": new_status.value},
+        )
+    return order
 
 
 async def cancel_order(

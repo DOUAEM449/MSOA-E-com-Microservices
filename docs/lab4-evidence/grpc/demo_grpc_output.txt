@@ -1,0 +1,21 @@
+
+=== 1. CheckAvailability over gRPC (handout step 4) ===
+  sufficient stock     productId=3 quantity=3      -> {'available': True, 'availableQuantity': 8}
+  insufficient stock   productId=3 quantity=10000  -> {'available': False, 'availableQuantity': 8}
+  unknown product      productId=999 quantity=2      -> {'status': 'NOT_FOUND', 'message': 'Product 999 not found'}
+  invalid quantity     productId=3 quantity=0      -> {'status': 'INVALID_ARGUMENT', 'message': 'quantity must be greater than 0'}
+
+=== 2. Place an order through Orders (REST) -> Orders calls Inventory via gRPC ===
+  POST /api/orders (2 x product 3) -> 201 status=PENDING_PAYMENT
+  stock of product 3: 8 -> 6  (reserved via gRPC ReserveStock)
+  POST /cancel -> 200 status=CANCELLED
+  stock of product 3 after cancel: 8  (ReleaseStock)
+
+=== 3. Order with insufficient stock -> rejected, nothing reserved ===
+  POST /api/orders (10000 x product 3) -> 409 {"message": "Insufficient stock for product 3: requested 10000, available 8."}
+
+=== 4. Latency: 1000 availability checks, REST/JSON vs gRPC/Protobuf ===
+                   mean ms  median ms   p95 ms  payload B
+  REST (JSON)         4.24       3.79     6.19         62
+  gRPC (proto)        2.51       2.41     3.20          9
+  gRPC is 1.7x faster on average

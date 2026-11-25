@@ -1,0 +1,12 @@
+### run 2
+=== 4. Latency: 1000 availability checks, REST/JSON vs gRPC/Protobuf ===
+                   mean ms  median ms   p95 ms  payload B
+  REST (JSON)         4.00       3.75     5.21         62
+  gRPC (proto)        2.50       2.41     3.21          9
+  gRPC is 1.6x faster on average
+### run 3
+=== 4. Latency: 1000 availability checks, REST/JSON vs gRPC/Protobuf ===
+                   mean ms  median ms   p95 ms  payload B
+  REST (JSON)         4.62       4.00     8.06         62
+  gRPC (proto)        2.51       2.42     3.08          9
+  gRPC is 1.8x faster on average

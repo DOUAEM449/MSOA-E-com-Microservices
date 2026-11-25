@@ -1,0 +1,28 @@
+LAB 4 - Scenario 1 (gRPC) - Orders -> Inventory, services reels, 25/11/2026
+Catalog :8082, Inventory :8083 + gRPC :50051, Orders :8084 (INVENTORY_TRANSPORT=grpc)
+Kafka non demarre : la publication d'OrderCreated echoue en arriere-plan sans bloquer la requete.
+
+=== Scenario 1: commande acceptee (stock suffisant) ===
+POST /api/orders (2 x product 3) -> HTTP 201 in 170 ms
+{"id": "f331a7d4-e89e-4a5a-ba1e-464cb1961c97", "status": "PENDING_PAYMENT"}
+
+=== Scenario 2: commande refusee (stock insuffisant) ===
+POST /api/orders (10000 x product 3) -> HTTP 409 in 123 ms
+{"message": "Insufficient stock for product 3: requested 10000, available 6."}
+
+=== Scenario 3: Inventory arrete (port 50051 ferme) ===
+Inventory: DOWN
+POST /api/orders (2 x product 3) -> HTTP 504 in 2231 ms
+{"message": "The inventory service timed out."}
+Orders /health: UP
+-> aucune commande enregistree pendant la panne (GET /api/orders?userId=demo-grpc : seulement des commandes CANCELLED)
+
+Log Orders pendant la panne :
+WARNING inventory_client Inventory gRPC CheckAvailability: deadline exceeded
+"POST /api/orders HTTP/1.1" 504 Gateway Timeout
+
+=== Scenario 3b: Inventory redemarre, le canal gRPC se reconnecte ===
+POST /api/orders (2 x product 3) -> HTTP 201 in 142 ms
+{"id": "55c4fed4-9860-4464-9b04-7ef09cec8e2d", "status": "PENDING_PAYMENT"}
+
+Tests automatises : services/orders 9 passed, services/inventory 18 passed.

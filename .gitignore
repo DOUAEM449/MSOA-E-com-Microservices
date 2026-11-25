@@ -25,3 +25,7 @@ __pycache__/
 *.njsproj
 *.sln
 *.sw?
+
+# Lab 4: generated gRPC code (run scripts/gen-proto.ps1)
+*_pb2.py
+*_pb2_grpc.py

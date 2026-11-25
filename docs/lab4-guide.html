@@ -1,0 +1,499 @@
+<title>MSOA Lab 4 Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, mechanism-coloured sections (gRPC blue, RabbitMQ orange, Kafka green) */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#1b2330; --muted:#5b6676; --line:#dde2e9;
+  --code-bg:#eef1f5;
+  --grpc:#2563c9; --grpc-soft:#e6eefb;
+  --rabbit:#d0611b; --rabbit-soft:#fcefe5;
+  --kafka:#18866b; --kafka-soft:#e3f4ee;
+  --lead:#7a4cc2; --lead-soft:#f0eafa;
+  --warn:#9a6a00; --warn-soft:#fff5d6;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --surface:#1a2029; --fg:#e4e8ee; --muted:#9aa5b4; --line:#2c3440;
+  --code-bg:#222a35;
+  --grpc:#7aa7f0; --grpc-soft:#1c2a42;
+  --rabbit:#f0965a; --rabbit-soft:#3a2617;
+  --kafka:#5cc9a7; --kafka-soft:#163229;
+  --lead:#b493ec; --lead-soft:#2a2140;
+  --warn:#f0c656; --warn-soft:#352c12;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1a2029; --fg:#e4e8ee; --muted:#9aa5b4; --line:#2c3440;
+  --code-bg:#222a35;
+  --grpc:#7aa7f0; --grpc-soft:#1c2a42;
+  --rabbit:#f0965a; --rabbit-soft:#3a2617;
+  --kafka:#5cc9a7; --kafka-soft:#163229;
+  --lead:#b493ec; --lead-soft:#2a2140;
+  --warn:#f0c656; --warn-soft:#352c12;
+  color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15.5px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:860px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.6rem);letter-spacing:-.01em}
+h2{font-size:1.55rem;margin-bottom:.6rem}
+h3{font-size:1.12rem;margin:1.4rem 0 .4rem}
+p{margin:.5rem 0;max-width:68ch}
+a{color:var(--grpc)}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+pre{font-family:var(--f-mono);font-size:13px;line-height:1.55;background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;margin:.6rem 0}
+pre code{background:none;padding:0}
+ul,ol{padding-left:1.3rem;margin:.4rem 0}
+li{margin:.2rem 0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+header{padding-block:44px 20px;border-bottom:1px solid var(--line);margin-bottom:28px}
+header p{color:var(--muted);font-size:1.05rem}
+
+section{padding-block:26px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--fg);border:1px solid var(--line);background:var(--surface);padding:4px 10px;border-radius:999px}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--fg);outline:none}
+
+.tbl{overflow-x:auto;margin:.8rem 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px;background:var(--surface)}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:500;font-size:13px;color:var(--muted)}
+
+.tag{display:inline-block;font-family:var(--f-mono);font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.t-grpc{background:var(--grpc-soft);color:var(--grpc)}
+.t-rabbit{background:var(--rabbit-soft);color:var(--rabbit)}
+.t-kafka{background:var(--kafka-soft);color:var(--kafka)}
+.t-lead{background:var(--lead-soft);color:var(--lead)}
+
+.mech{border-left:4px solid var(--c);padding-left:18px}
+.mech.grpc{--c:var(--grpc)} .mech.rabbit{--c:var(--rabbit)} .mech.kafka{--c:var(--kafka)} .mech.lead{--c:var(--lead)}
+.mech h2{color:var(--c)}
+
+.analogy{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:.8rem 0}
+.analogy b{font-family:var(--f-display)}
+
+.people{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:.8rem 0}
+.person{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.person h4{font-family:var(--f-display);margin:0 0 2px;font-size:1.05rem}
+.person .role{font-size:13px;color:var(--muted);margin-bottom:8px}
+.person ul{font-size:14px}
+
+.note{background:var(--warn-soft);border-radius:8px;padding:10px 14px;margin:.8rem 0;font-size:14.5px}
+.note b{color:var(--warn)}
+
+.diagram{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;margin:1rem 0}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.diagram text{font-family:var(--f-body);fill:var(--fg)}
+.diagram .lbl{font-family:var(--f-mono);font-size:12px}
+.diagram .small{font-size:12px;fill:var(--muted)}
+
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;position:relative;padding-left:40px;margin:.7rem 0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;background:var(--fg);color:var(--bg);font-family:var(--f-display);font-size:13px;display:grid;place-items:center}
+
+.dod{font-size:14px}
+.dod li::marker{content:"☐  "}
+dl.gloss{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;font-size:14.5px}
+dl.gloss dt{font-family:var(--f-mono);font-weight:500}
+dl.gloss dd{margin:0;color:var(--muted)}
+@media (max-width:560px){dl.gloss{grid-template-columns:1fr}dl.gloss dd{margin-bottom:6px}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Microservice-oriented Architectures · Lab 4 · Guide dyal l'équipe</div>
+  <h1>Lab 4: kifach services dyalna ghadi yhedro m3a ba3dhom</h1>
+  <p>Had l-page fiha kolchi: chno l-hadaf, l-architecture, chkoun kaydir chno, l-contrats li khassna ntfa9o 3lihom, o kifach ntestiw. 9raw l-partie l3amma kamla, o mn ba3d kol wahed y9ra l-partie dyalo mezyan.</p>
+  <nav class="toc" aria-label="Sommaire">
+    <a href="#fikra">L-fikra</a><a href="#archi">Architecture</a><a href="#flow">Flow dyal commande</a>
+    <a href="#team">Répartition</a><a href="#grpc">gRPC</a><a href="#rabbit">RabbitMQ</a><a href="#kafka">Kafka</a>
+    <a href="#infra">Setup</a><a href="#git">Git</a><a href="#etapes">Étapes</a><a href="#livrables">Livrables</a><a href="#gloss">Glossaire</a>
+  </nav>
+</header>
+
+<section id="fikra">
+  <h2>1. L-fikra dyal l-lab b kalimat basita</h2>
+  <p>Daba ga3 les services dyalna kayhdro b <b>REST</b>: service kaysift requête HTTP b JSON o kaytsenna jawab. Hadchi khddam, walakin l-prof kaygoul: <b>REST machi dima howa l-hal l-mezyan</b>.</p>
+  <p>Kaynin 3 situations jdad, o kol situation khassha tari9a dyal tawasol (mécanisme) li tnasbha:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Situation</th><th>Chkoun m3a chkoun</th><th>L-mochkil</th><th>L-hal</th></tr></thead>
+    <tbody>
+      <tr><td>Vérifier/réserver stock bzaf o b zerba</td><td>Orders → Inventory</td><td>REST + JSON t9il o bti2 ila kthrou les requêtes</td><td><span class="tag t-grpc">gRPC</span> synchrone, sri3</td></tr>
+      <tr><td>Mor l-paiement, wejjed l-expédition</td><td>Payments → Shipping</td><td>Le client ma khasshch ytsenna. O ila Shipping tah, la demande ma khasshach tdi3</td><td><span class="tag t-rabbit">RabbitMQ</span> queue asynchrone</td></tr>
+      <tr><td>Service Analytics jdid</td><td>Orders, Payments, Shipping → Analytics</td><td>Khasso l-historique kaml dyal les événements, o y9der y3awed y9rahom</td><td><span class="tag t-kafka">Kafka</span> log dyal events</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Qa3ida mohimma:</b> ma kan7aydou walo. Ga3 les API REST li khddamin m3a l-frontend kayb9aw kif ma homa. Kanzidou ghir les 3 tawasolat jdad.</p>
+</section>
+
+<section id="archi">
+  <h2>2. L-architecture mn A l Z</h2>
+  <p>Had schéma kayban fih chno ghadi ykoun f l-akhir. Les flèches grises homa REST (kaynin déjà). Les flèches mlwnin homa l-khedma dyal had l-lab.</p>
+  <div class="diagram" role="img" aria-label="Architecture: le frontend appelle Orders, Payments et Shipping en REST. Orders appelle Inventory en gRPC. Payments publie dans la queue RabbitMQ shipping_requests, consommée par Shipping. Orders, Payments et Shipping publient des événements dans le topic Kafka ecommerce-events, lu par le nouveau service Analytics.">
+  <svg viewBox="0 0 960 590" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="aG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+      <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--grpc)"/></marker>
+      <marker id="aO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--rabbit)"/></marker>
+      <marker id="aK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--kafka)"/></marker>
+    </defs>
+
+    <!-- Frontend -->
+    <rect x="380" y="16" width="200" height="48" rx="8" fill="var(--code-bg)" stroke="var(--line)"/>
+    <text x="480" y="45" text-anchor="middle" font-weight="600">Frontend React</text>
+    <text x="760" y="36" class="small">Auth :8081 o Catalog :8082</text>
+    <text x="760" y="52" class="small">ma kaytbedlou (REST)</text>
+
+    <!-- REST arrows -->
+    <path d="M420 64 L170 128" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#aG)"/>
+    <path d="M480 64 L480 128" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#aG)"/>
+    <path d="M540 64 L790 128" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#aG)"/>
+    <text x="270" y="88" class="lbl" fill="var(--muted)">REST</text>
+
+    <!-- Services row -->
+    <rect x="60" y="130" width="220" height="58" rx="8" fill="var(--surface)" stroke="var(--fg)"/>
+    <text x="170" y="155" text-anchor="middle" font-weight="600">Orders :8084</text>
+    <text x="170" y="174" text-anchor="middle" class="small">client gRPC + producer Kafka</text>
+
+    <rect x="370" y="130" width="220" height="58" rx="8" fill="var(--surface)" stroke="var(--fg)"/>
+    <text x="480" y="155" text-anchor="middle" font-weight="600">Payments :8085</text>
+    <text x="480" y="174" text-anchor="middle" class="small">producer RabbitMQ + Kafka</text>
+
+    <rect x="680" y="130" width="220" height="58" rx="8" fill="var(--surface)" stroke="var(--fg)"/>
+    <text x="790" y="155" text-anchor="middle" font-weight="600">Shipping :8086</text>
+    <text x="790" y="174" text-anchor="middle" class="small">consumer RabbitMQ + producer Kafka</text>
+
+    <!-- gRPC -->
+    <path d="M120 190 L120 286" stroke="var(--grpc)" stroke-width="2.5" fill="none" marker-start="url(#aB)" marker-end="url(#aB)"/>
+    <text x="130" y="236" class="lbl" fill="var(--grpc)">gRPC :50051</text>
+    <text x="130" y="252" class="small">CheckStock / Reserve / Release</text>
+    <rect x="40" y="288" width="170" height="58" rx="8" fill="var(--grpc-soft)" stroke="var(--grpc)"/>
+    <text x="125" y="313" text-anchor="middle" font-weight="600">Inventory :8083</text>
+    <text x="125" y="332" text-anchor="middle" class="small">+ serveur gRPC</text>
+
+    <!-- RabbitMQ -->
+    <path d="M500 190 L520 286" stroke="var(--rabbit)" stroke-width="2.5" fill="none" marker-end="url(#aO)"/>
+    <text x="400" y="242" class="lbl" fill="var(--rabbit)">publish</text>
+    <rect x="440" y="288" width="210" height="58" rx="8" fill="var(--rabbit-soft)" stroke="var(--rabbit)"/>
+    <text x="545" y="311" text-anchor="middle" font-weight="600">RabbitMQ</text>
+    <text x="545" y="331" text-anchor="middle" class="lbl" fill="var(--rabbit)">queue shipping_requests</text>
+    <path d="M650 300 C 720 290, 760 250, 770 192" stroke="var(--rabbit)" stroke-width="2.5" fill="none" marker-end="url(#aO)"/>
+    <text x="700" y="250" class="lbl" fill="var(--rabbit)">consume + ACK</text>
+
+    <!-- Kafka lines -->
+    <path d="M250 190 L250 418" stroke="var(--kafka)" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#aK)"/>
+    <text x="258" y="400" class="lbl" fill="var(--kafka)">OrderCreated</text>
+    <path d="M400 190 L400 418" stroke="var(--kafka)" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#aK)"/>
+    <text x="408" y="400" class="lbl" fill="var(--kafka)">PaymentCompleted</text>
+    <path d="M880 190 L880 418" stroke="var(--kafka)" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#aK)"/>
+    <text x="872" y="400" text-anchor="end" class="lbl" fill="var(--kafka)">ShipmentCreated</text>
+
+    <!-- Kafka bar -->
+    <rect x="40" y="420" width="880" height="56" rx="8" fill="var(--kafka-soft)" stroke="var(--kafka)"/>
+    <text x="480" y="444" text-anchor="middle" font-weight="600">Kafka · topic ecommerce-events</text>
+    <text x="480" y="463" text-anchor="middle" class="small">les événements kaytkhzno b tartib o kayb9aw (retention), ma kaytmse7ouch mor l-9raya</text>
+
+    <path d="M480 476 L480 512" stroke="var(--kafka)" stroke-width="2.5" fill="none" marker-end="url(#aK)"/>
+    <rect x="360" y="514" width="240" height="58" rx="8" fill="var(--surface)" stroke="var(--kafka)" stroke-width="2"/>
+    <text x="480" y="539" text-anchor="middle" font-weight="600">Analytics :8087 (jdid)</text>
+    <text x="480" y="558" text-anchor="middle" class="small">consumer group analytics-service</text>
+  </svg>
+  </div>
+  <p><b>F l-machine dyalkom ghadi ykounou khddamin:</b> les 6 services l9dam + Analytics (jdid) + RabbitMQ + Kafka (b Docker).</p>
+</section>
+
+<section id="flow">
+  <h2>3. Chno kaywe9e3 mli client kaychri (l-histoire kamla)</h2>
+  <ol class="steps">
+    <li>Le client kaydir checkout f l-frontend. Le frontend kaysift <code>POST /api/orders</code> l Orders (REST, bhal daba).</li>
+    <li>Orders kayjib les prix mn Catalog (REST, ma tbedel walo), o kay3iyet l Inventory <b>b gRPC</b> bach yréserver l-stock. Kaytsenna la réponse (synchrone) hit bla stock ma kaynach commande.</li>
+    <li>Orders kaykhzen la commande b status <code>PENDING_PAYMENT</code> o kaypublier event <code>OrderCreated</code> f <b>Kafka</b>.</li>
+    <li>Le client kaykhelles: <code>POST /api/payments</code>. Payments kaysajjel l-paiement o kaydir l-order <code>PAID</code> (REST, bhal daba).</li>
+    <li>Payments kaypublier message <code>ShipmentRequested</code> f <b>RabbitMQ</b> (queue <code>shipping_requests</code>) o kaypublier <code>PaymentCompleted</code> f Kafka. Kayrja3 la réponse l client <b>direct</b>, bla ma ytsenna Shipping.</li>
+    <li>Shipping (consumer) kayqra l-message mn la queue, kaycréer shipment, o 3ad kaysift <b>ACK</b>. Ila Shipping kan tayeh, l-message kayb9a f la queue tal ma ynod.</li>
+    <li>Shipping kaypublier <code>ShipmentCreated</code> f Kafka.</li>
+    <li>Analytics kayqra ga3 les events mn Kafka o kayhseb statistiques (ch7al mn commande, chiffre d'affaires…). Ila tlanca jdid, kayqra hta les events l9dam.</li>
+  </ol>
+</section>
+
+<section id="team">
+  <h2>4. Répartition dyal l-khedma</h2>
+  <p>L-répartition li drtou (zouj f kol mécanisme) <b>s7i7a</b>, o hiya li kaytlob l-prof f Q5a. Ghir zedna tafasil: f kol binôme wahed kaydir <b>jiha li kaysift</b> o l-akhor <b>jiha li kaystaqbel</b>, bach ma ykhdmouch f nfs les fichiers.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Chkoun</th><th>Mécanisme</th><th>Dor</th><th>Les fichiers dyalo</th></tr></thead>
+    <tbody>
+      <tr><td><b>Douae</b> (leader)</td><td><span class="tag t-rabbit">RabbitMQ</span> <span class="tag t-lead">leader</span></td><td>Producer f Payments + setup Docker + intégration finale + rapport</td><td><code>docker-compose.yml</code>, <code>services/payments/messaging.py</code>, <code>docs/</code></td></tr>
+      <tr><td><b>Imane</b></td><td><span class="tag t-rabbit">RabbitMQ</span></td><td>Consumer f Shipping + les 3 tests dyal handout</td><td><code>services/shipping/consumer.py</code>, <code>shipping_service.py</code></td></tr>
+      <tr><td><b>Youssef</b></td><td><span class="tag t-grpc">gRPC</span></td><td>Fichier <code>.proto</code> + serveur gRPC f Inventory</td><td><code>proto/inventory.proto</code>, <code>services/inventory/grpc_server.py</code></td></tr>
+      <tr><td><b>Taha</b></td><td><span class="tag t-grpc">gRPC</span></td><td>Client gRPC f Orders + benchmark REST vs gRPC</td><td><code>services/orders/inventory_client.py</code>, <code>service.py</code></td></tr>
+      <tr><td><b>Salma</b></td><td><span class="tag t-kafka">Kafka</span></td><td>Producers dyal events f Orders, Payments, Shipping</td><td><code>services/*/events.py</code> + 1 ligne f kol service</td></tr>
+      <tr><td><b>Amal</b></td><td><span class="tag t-kafka">Kafka</span></td><td>Service Analytics jdid (consumer + replay)</td><td><code>services/analytics/</code> (kaml)</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Part I + Q4 (l-analyse):</b> kol binôme kayktbe l-jawab dyal l-scenario dyalo (gRPC → Q1 + justification Q4, RabbitMQ → Q2, Kafka → Q3). Douae katjme3 kolchi f <code>docs/answers.md</code>.</p>
+</section>
+
+<section id="grpc" class="mech grpc">
+  <h2>5. gRPC: Orders ⇄ Inventory</h2>
+  <div class="analogy"><b>Tachbih:</b> REST bhal ila kteb lik chi wahed bra twila b l-lougha l-3adiya (JSON). gRPC bhal coup de fil b code mtfa9in 3lih mn 9bel: sghir, sri3, o kolchi 3arf chno ghadi ygoul l-akhor. L-contrat dyal had l-code howa l-fichier <code>.proto</code>.</div>
+
+  <h3>3lach gRPC hna?</h3>
+  <ul>
+    <li>Orders <b>khasso la réponse daba</b> (wach kayn stock?), donc khassna tawasol <b>synchrone</b>. RabbitMQ/Kafka ma ynasbouch hit homa asynchrones.</li>
+    <li>gRPC kaysift data b <b>Protobuf</b> (binaire, sghir bzaf 3la JSON) o 3la <b>HTTP/2</b> (connexion wehda l bzaf dyal les appels).</li>
+    <li>Contrat <b>strict o typé</b>: ila chi wahed bdel champ, l-code ma ykhdemch, donc ma kaynch erreurs khfiyin.</li>
+  </ul>
+
+  <h3>L-contrat: <code>proto/inventory.proto</code> (Youssef o Taha ykteboh m3a ba3d, nhar 1)</h3>
+<pre><code>syntax = "proto3";
+package inventory;
+
+service InventoryService {
+  rpc CheckStock   (StockRequest) returns (CheckStockReply);
+  rpc ReserveStock (StockRequest) returns (OperationReply);
+  rpc ReleaseStock (StockRequest) returns (OperationReply);
+}
+
+message StockItem       { int32 product_id = 1; int32 quantity = 2; }
+message StockRequest    { repeated StockItem items = 1; }
+message ItemAvailability{ int32 product_id = 1; int32 requested = 2;
+                          int32 available = 3; bool in_stock = 4; }
+message CheckStockReply { bool all_available = 1; repeated ItemAvailability items = 2; }
+message OperationReply  { bool success = 1; string message = 2; }</code></pre>
+  <p>Génération dyal l-code Python (f kol service li kaykhdem b gRPC):</p>
+<pre><code>pip install grpcio grpcio-tools
+python -m grpc_tools.protoc -I ../../proto --python_out=. --grpc_python_out=. ../../proto/inventory.proto</code></pre>
+
+  <div class="people">
+    <div class="person">
+      <h4>Youssef · serveur</h4>
+      <div class="role">Inventory kaywelli fih serveur gRPC f port 50051</div>
+      <ul>
+        <li>Ktbe <code>grpc_server.py</code> li kay-implémenter les 3 méthodes.</li>
+        <li>3awed khdem b <b>nfs la logique</b> dyal REST (<code>/check</code>, <code>/reserve</code>, <code>/release</code>): dir fonctions mchtarkin, ma tktbech la logique jouj marrat.</li>
+        <li>Lanci serveur gRPC f thread m3a FastAPI (f <code>lifespan</code>), bach REST o gRPC ykhdmou b jouj.</li>
+        <li>Erreurs: stock ma kafich → <code>FAILED_PRECONDITION</code>, produit ma kaynch → <code>NOT_FOUND</code>.</li>
+      </ul>
+    </div>
+    <div class="person">
+      <h4>Taha · client</h4>
+      <div class="role">Orders kay3iyet l Inventory b gRPC blast REST</div>
+      <ul>
+        <li>Ktbe <code>inventory_client.py</code> (channel gRPC wahed kaytkhla9 mra wehda o kay3awed ytkhdem).</li>
+        <li>Bdel <code>_reserve_inventory</code> o <code>_release_inventory</code> f <code>service.py</code> bach ykhdmou b gRPC.</li>
+        <li>Traduire les erreurs: <code>FAILED_PRECONDITION</code>→409, <code>NOT_FOUND</code>→404, <code>UNAVAILABLE</code>→503, <code>DEADLINE_EXCEEDED</code>→504. Dir timeout (deadline) 2s.</li>
+        <li>Benchmark: 1000 appels REST vs 1000 appels gRPC, 9iyes l-wa9t. Hada howa l-dalil dyal "high-performance".</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Kifach n3erfou bli sala</h3>
+  <ul class="dod">
+    <li>Commande mn l-frontend kat-créa o l-stock kaynqass (via gRPC).</li>
+    <li>Ila l-stock ma kafich → 409 b message wadeh.</li>
+    <li>Ila Inventory tayeh → 503 machi crash.</li>
+    <li>Tableau dyal benchmark (latence moyenne REST vs gRPC) f l-rapport.</li>
+    <li>Les tests dyal Orders kaydouzou.</li>
+  </ul>
+</section>
+
+<section id="rabbit" class="mech rabbit">
+  <h2>6. RabbitMQ: Payments → Shipping</h2>
+  <div class="analogy"><b>Tachbih:</b> bhal la poste. Payments kay7et lettre f boîte aux lettres (la queue) o kaymchi f halo. Shipping kayji yakhod les lettres mli ykoun wajed. Ila Shipping kan ghayeb, les lettres kayb9aw f la boîte, ma kaydi3ouch. O mli kay9ra lettre o ysali l-khedma, kaygoul "safi" (ACK) bach tthiyed.</div>
+
+  <h3>3lach RabbitMQ hna?</h3>
+  <ul>
+    <li>Le client <b>ma khasshch ytsenna</b> l-preparation dyal shipment → asynchrone.</li>
+    <li>Ila Shipping tah, l-message <b>kayb9a f la queue</b> (durable + persistent) → ma kaydi3 walo.</li>
+    <li>ACK manuel: ila Shipping tah 9bel ma ysali, RabbitMQ <b>kay3awed ysift</b> l-message.</li>
+    <li>3lach machi Kafka? Hna 3ndna "khedma" li khass consumer wahed ydirha mra wehda o tsala. RabbitMQ msaweb l had l-cas (task queue). Kafka mzyan l l-historique o replay.</li>
+  </ul>
+
+  <h3>L-contrat: message <code>ShipmentRequested</code></h3>
+<pre><code>// queue: shipping_requests  (durable=true, exclusive=false, auto_delete=false)
+// exchange: ""  (default)   routing key: shipping_requests   delivery_mode: 2 (persistent)
+{
+  "messageId": "a3f1c2e0-...",        // uuid, unique l kol message
+  "type": "ShipmentRequested",
+  "orderId": "order-1a2b3c4d",
+  "paymentId": "payment-9f8e7d6c",
+  "address": { "name": "Imane", "address": "12 Rue X", "city": "Rabat" },
+  "occurredAt": "2026-11-24T10:15:00Z"
+}</code></pre>
+  <p>L-adresse kayna déjà f la commande (<code>customer.name / address / city</code>), o Payments déjà kayjib la commande mn Orders. Donc Payments 3ndo kolchi bach ybni l-message.</p>
+
+  <div class="people">
+    <div class="person">
+      <h4>Douae · producer</h4>
+      <div class="role">Payments kaypublier mor ma l-order ywelli PAID</div>
+      <ul>
+        <li>Ktbe <code>messaging.py</code>: connexion wehda l RabbitMQ (<code>pika</code>), déclarer la queue, fonction <code>publish_shipment_requested(...)</code>.</li>
+        <li>3iyet 3liha f <code>create_payment</code> <b>mor</b> l-PATCH PAID yenjah.</li>
+        <li>Message <b>persistent</b> + publisher confirms (<code>confirm_delivery()</code>).</li>
+        <li>Ila RabbitMQ tayeh: l-paiement ma ytla7ch, ghir log warning (o ymken 3awed l-envoi mn ba3d).</li>
+      </ul>
+    </div>
+    <div class="person">
+      <h4>Imane · consumer</h4>
+      <div class="role">Shipping kayqra mn la queue o kaycréer shipment</div>
+      <ul>
+        <li>Ktbe <code>consumer.py</code>: thread kaybda m3a FastAPI (<code>lifespan</code>), <code>auto_ack=False</code>, <code>prefetch_count=1</code>.</li>
+        <li>Handler: parse JSON → valider → créer shipment → <b>3ad</b> <code>basic_ack</code>. Message khayeb (JSON ghalat) → <code>basic_nack(requeue=False)</code>.</li>
+        <li><b>Idempotence:</b> ila shipment l dak <code>orderId</code> déjà kayn → ACK bla ma tcréer wahed jdid.</li>
+        <li>Rend <code>POST /api/shipments</code> idempotent hta howa (ila déjà kayn → rje3 l-shipment li kayn b 200), hit le frontend ba9i kay3iyet 3lih mor l-paiement o ma 3ndnach l-7e9 nbedlou les pages.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Les tests (mn l-handout H3, b screenshots dyal <code>localhost:15672</code>)</h3>
+  <ul class="dod">
+    <li><b>Normal:</b> khelles → shipment kaytcréa → la queue kat-rje3 Ready 0 / Unacked 0.</li>
+    <li><b>Shipping tayeh:</b> 7bes Shipping, khelles → Ready 1. 3awed lanci Shipping → shipment kaytcréa bohdo.</li>
+    <li><b>Crash 9bel ACK:</b> zid <code>time.sleep(30)</code> 9bel l-ACK, khelles → Unacked 1, 9tel l-process → Ready 1, lanci → kaytconsomma o ACK.</li>
+    <li>Ma kaytcréach shipment jouj marrat l nfs l-order.</li>
+  </ul>
+</section>
+
+<section id="kafka" class="mech kafka">
+  <h2>7. Kafka: events → Analytics</h2>
+  <div class="analogy"><b>Tachbih:</b> Kafka bhal <b>cahier dyal l-historique</b>. Kol service kayktbe fih chno w9e3 ("commande tcréat", "paiement daz"…) f star jdid. L-ktaba ma kattmse7ch mor l-9raya. Kol wahed li bgha y9ra 3ndo marque-page dyalo (offset), o y9der yrje3 l l-bdya o y3awed y9ra kolchi (replay).</div>
+
+  <h3>3lach Kafka hna o machi RabbitMQ?</h3>
+  <ul>
+    <li>F RabbitMQ, mor l-ACK l-message <b>kaytmse7</b>. Analytics ila kan tayeh wla tzad mn ba3d, ma ghadi yl9a walo.</li>
+    <li>Kafka kaykhzen les events b <b>retention</b> (ex. 7 iyam wla dima), o kol consumer group 3ndo <b>offset</b> dyalo → y9der ybda mn <code>earliest</code> o y3awed (replay).</li>
+    <li>Bzaf dyal services y9raw nfs les events <b>bla ma y-affectiw</b> ba3dhom (kol wahed consumer group).</li>
+  </ul>
+
+  <h3>L-contrat: event schema (nfs l-forma l ga3 les events)</h3>
+<pre><code>// topic: ecommerce-events     key: orderId  (bach les events dyal nfs commande yb9aw b tartib)
+{
+  "eventId": "7c9e6679-...",          // uuid unique (Analytics kaystkhdmo bach ma y7sebch jouj marrat)
+  "eventType": "OrderCreated",        // OrderCreated | PaymentCompleted | ShipmentCreated | ShipmentStatusChanged
+  "source": "orders",                 // orders | payments | shipping
+  "occurredAt": "2026-11-24T10:14:02Z",
+  "orderId": "order-1a2b3c4d",
+  "data": { "total": 349.0, "itemsCount": 3 }   // kaytbedel 3la 7sab eventType
+}</code></pre>
+
+  <div class="people">
+    <div class="person">
+      <h4>Salma · producers</h4>
+      <div class="role">Orders, Payments o Shipping kaypubliyiw events</div>
+      <ul>
+        <li>Ktbe <code>events.py</code> sghir (producer <code>confluent-kafka</code> + <code>publish_event(type, order_id, data)</code>), o copier-h f les 3 services.</li>
+        <li>Zid 1 ligne f kol blasa: <code>OrderCreated</code> (Orders), <code>PaymentCompleted</code> (Payments), <code>ShipmentCreated</code> + <code>ShipmentStatusChanged</code> (Shipping).</li>
+        <li>Ila Kafka tayeh: la requête ma ttla7ch, ghir log warning.</li>
+        <li>Créer le topic b retention (ex. 7 iyam) o 3 partitions.</li>
+      </ul>
+    </div>
+    <div class="person">
+      <h4>Amal · Analytics</h4>
+      <div class="role">Service jdid <code>services/analytics</code> f port 8087</div>
+      <ul>
+        <li>FastAPI + SQLite dyalo (database-per-service), consumer f thread, <code>group.id=analytics-service</code>, <code>auto.offset.reset=earliest</code>.</li>
+        <li>Khzen kol event f table <code>events</code> (<code>eventId</code> UNIQUE → idempotent).</li>
+        <li>Endpoints: <code>GET /api/analytics/summary</code> (nombre commandes, CA, paiements, shipments), <code>GET /api/analytics/events</code>.</li>
+        <li><code>POST /api/analytics/replay</code>: msse7 les stats o rje3 l-offset l l-bdya → kay3awed y9ra kolchi.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Kifach n3erfou bli sala</h3>
+  <ul class="dod">
+    <li>Dir 3 commandes <b>w Analytics tafi</b>. Mn ba3d lanci Analytics → kayl9a les 3 (hada howa l-dalil dyal retention).</li>
+    <li>Replay kay3awed y7seb nfs l-arqam (ma kaytzadouch jouj marrat).</li>
+    <li>Consumer group akhor (ex. <code>kafka-console-consumer</code>) y9der y9ra nfs les events bla ma y-affecti Analytics.</li>
+  </ul>
+</section>
+
+<section id="infra" class="mech lead">
+  <h2>8. Setup (Douae, nhar 1, 9bel ma ybda 7ta wahed)</h2>
+  <p><b>Déjà wajed f l-repo.</b> Bach ma ytsalach kol wahed y-installi RabbitMQ o Kafka b yeddo, kanlanciwhom b Docker (<code>docker-compose.yml</code> f racine). Les contrats kamlin f <code>docs/LAB4_CONTRACTS.md</code> o l-gRPC f <code>proto/inventory.proto</code>.</p>
+  <p>Kol wahed ydir had 3 commandes mor <code>git pull</code> (Docker Desktop khasso ykoun khddam):</p>
+<pre><code>docker compose up -d                 # RabbitMQ + Kafka + topic ecommerce-events + Kafka UI
+.\scripts\setup-services.ps1         # installi les libraries jdad + génère le code gRPC
+.\scripts\start-services.ps1         # lanci les services (Analytics ghir mli Amal tcréeh)</code></pre>
+  <div class="tbl"><table>
+    <thead><tr><th>Chno</th><th>Fin</th></tr></thead>
+    <tbody>
+      <tr><td>RabbitMQ (pika)</td><td><code>localhost:5672</code></td></tr>
+      <tr><td>Interface RabbitMQ</td><td><code>http://localhost:15672</code> (guest / guest)</td></tr>
+      <tr><td>Kafka (confluent-kafka)</td><td><code>localhost:9092</code>, topic <code>ecommerce-events</code></td></tr>
+      <tr><td>Interface Kafka</td><td><code>http://localhost:8090</code></td></tr>
+      <tr><td>Inventory gRPC</td><td><code>127.0.0.1:50051</code></td></tr>
+      <tr><td>Analytics</td><td><code>127.0.0.1:8087</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Libraries Python jdad (déjà mzyoudin f <code>requirements.txt</code>, ghir Amal tzid <code>confluent-kafka</code> f Analytics):</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Library</th><th>Services</th></tr></thead>
+    <tbody>
+      <tr><td><code>grpcio</code>, <code>grpcio-tools</code></td><td>inventory, orders</td></tr>
+      <tr><td><code>pika</code></td><td>payments, shipping</td></tr>
+      <tr><td><code>confluent-kafka</code></td><td>orders, payments, shipping, analytics</td></tr>
+    </tbody>
+  </table></div>
+  <p>Les scripts kay3erfou <code>analytics</code> (port 8087) bohdom mli ykoun l-dossier <code>services/analytics</code> wajed. Les fichiers <code>*_pb2.py</code> ma kaytcommitawch: kol wahed kaygénérihom b <code>.\scripts\gen-proto.ps1</code>. Ila chi wahed ma 3ndoch Docker, y9der ytba3 l-installation Windows li f handout H3 (Erlang + RabbitMQ).</p>
+</section>
+
+<section id="git">
+  <h2>9. Git: kifach ma nkhasrouch l-code dyal ba3dna</h2>
+  <ul>
+    <li>Kol binôme branche dyalo: <code>feat/lab4-grpc</code>, <code>feat/lab4-rabbitmq</code>, <code>feat/lab4-kafka</code>. Douae: <code>feat/lab4-infra</code>.</li>
+    <li>Kol wahed kaybdel <b>ghir les fichiers dyalo</b> (chouf tableau f section 4).</li>
+    <li>Tartib dyal merge f <code>main</code>: <b>infra → gRPC → RabbitMQ → Kafka</b>. Kafka l-akhar hit Salma kat-zid lignes f fichiers dyal les autres; tdir <code>git pull</code> d main 9bel.</li>
+    <li>Kol merge b Pull Request, o wahed mn binôme akhor kaychouf l-code 9bel.</li>
+    <li>Ma t-commitich <code>.venv</code>, <code>*.db</code>, wla les fichiers générés <code>*_pb2.py</code> ila ttfa9na ngeneriwhom b script.</li>
+  </ul>
+</section>
+
+<section id="etapes">
+  <h2>10. Les étapes</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Étape</th><th>Chno</th><th>Chkoun</th></tr></thead>
+    <tbody>
+      <tr><td>1. Setup + contrats</td><td>Docker khddam 3nd kolchi. <code>.proto</code>, message RabbitMQ o event Kafka mtfa9 3lihom (copiyin mn had l-guide).</td><td>Douae + kolchi</td></tr>
+      <tr><td>2. Analyse</td><td>Kol binôme ykteb Part I (scenario dyalo) + justification Q4.</td><td>Kol binôme</td></tr>
+      <tr><td>3. Code</td><td>Kol wahed ydir l-partie dyalo f branche dyalo, o yteste bohdo.</td><td>Kolchi</td></tr>
+      <tr><td>4. Intégration</td><td>Merge b tartib, test end-to-end mn l-frontend (commande → paiement → shipment → analytics).</td><td>Douae + binôme li kaymergi</td></tr>
+      <tr><td>5. Tests + rapport</td><td>Screenshots (RabbitMQ UI, benchmark gRPC, replay Kafka), README, rapport final.</td><td>Kolchi, Douae katjme3</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="livrables">
+  <h2>11. Chno ghadi nsellmou</h2>
+  <ul>
+    <li><b>Part I</b>: jawab 3la 1a→3c (analyse, bla ma tsemmi technologie).</li>
+    <li><b>Q4</b>: l-mécanisme dyal kol scenario + 3lach howa hsen mn les alternatives (tableau f section 1 + "3lach" f kol section).</li>
+    <li><b>Q5</b>: l-code + l-contrats (<code>.proto</code>, message, event schema) + preuves dyal tests.</li>
+    <li>REST l9dima ba9a khddama (le frontend kaykhdem bhal 9bel).</li>
+  </ul>
+</section>
+
+<section id="gloss">
+  <h2>12. Glossaire sghir</h2>
+  <dl class="gloss">
+    <dt>Synchrone</dt><dd>Kaysift o kaytsenna la réponse 9bel ma ykemmel.</dd>
+    <dt>Asynchrone</dt><dd>Kaysift o kaykemmel khedmto, la réponse (ila kayna) katji mn ba3d.</dd>
+    <dt>Protobuf</dt><dd>Format binaire dyal gRPC, sghir o sri3 3la JSON.</dd>
+    <dt>Producer / Consumer</dt><dd>Li kaysift l-message / li kayqrah.</dd>
+    <dt>Queue</dt><dd>Sef dyal messages kaytsennaw (RabbitMQ).</dd>
+    <dt>ACK</dt><dd>Consumer kaygoul "salit" → RabbitMQ kaymse7 l-message.</dd>
+    <dt>Durable / persistent</dt><dd>La queue o les messages kayb9aw hta ila RabbitMQ t3awed.</dd>
+    <dt>Idempotent</dt><dd>Ila 3awdti nfs l-message jouj marrat, n-natija hiya hiya (ma kaytcréach shipment jouj).</dd>
+    <dt>Topic</dt><dd>"Cahier" f Kafka fin kaytkhzno events dyal nfs l-mawdou3.</dd>
+    <dt>Offset</dt><dd>Numéro dyal l-event f l-topic, bhal marque-page.</dd>
+    <dt>Consumer group</dt><dd>Smiya dyal l-lecteur. Kol group 3ndo offset dyalo.</dd>
+    <dt>Retention</dt><dd>Ch7al mn wa9t kayb9aw les events f Kafka.</dd>
+    <dt>Replay</dt><dd>Rje3 l l-bdya o 3awed 9ra les events l9dam.</dd>
+  </dl>
+</section>
+
+</div>

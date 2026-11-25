@@ -7,11 +7,12 @@ from datetime import datetime, timezone
 import httpx
 
 from database import get_db
+from events import publish_event
 
 ORDERS_URL = os.environ.get("ORDERS_URL", "http://127.0.0.1:8084")
 TIMEOUT = 5.0  # seconds
 
-# Valid status transitions (current → allowed next)
+# Valid status transitions (current -> allowed next)
 VALID_TRANSITIONS = {
     "PREPARING": "SHIPPED",
     "SHIPPED": "IN_TRANSIT",
@@ -31,13 +32,19 @@ async def _set_order_status(order_id: str, status: str):
                 json={"status": status},
             )
     except httpx.TransportError:
-        return 503, {"message": "Orders service is unavailable, shipment status was not changed"}
+        return 503, {
+            "message": "Orders service is unavailable, shipment status was not changed"
+        }
 
     if resp.status_code in (200, 204):
         return None
     if resp.status_code == 409:
-        return 409, {"message": f"Order {order_id} cannot move to {status}, shipment status was not changed"}
-    return 502, {"message": f"Orders service could not set order {order_id} to {status}"}
+        return 409, {
+            "message": f"Order {order_id} cannot move to {status}, shipment status was not changed"
+        }
+    return 502, {
+        "message": f"Orders service could not set order {order_id} to {status}"
+    }
 
 
 def _generate_tracking_number():
@@ -68,8 +75,10 @@ def list_shipments():
     """Return all shipments."""
     conn = get_db()
     try:
-        rows = conn.execute("SELECT * FROM shipments ORDER BY created_at DESC").fetchall()
-        return [_row_to_dict(r) for r in rows]
+        rows = conn.execute(
+            "SELECT * FROM shipments ORDER BY created_at DESC"
+        ).fetchall()
+        return [_row_to_dict(row) for row in rows]
     finally:
         conn.close()
 
@@ -79,7 +88,8 @@ def get_shipment_by_order(order_id: str):
     conn = get_db()
     try:
         row = conn.execute(
-            "SELECT * FROM shipments WHERE order_id = ?", (order_id,)
+            "SELECT * FROM shipments WHERE order_id = ?",
+            (order_id,),
         ).fetchone()
         return _row_to_dict(row) if row else None
     finally:
@@ -91,7 +101,8 @@ def get_shipment_by_id(shipment_id: str):
     conn = get_db()
     try:
         row = conn.execute(
-            "SELECT * FROM shipments WHERE id = ?", (shipment_id,)
+            "SELECT * FROM shipments WHERE id = ?",
+            (shipment_id,),
         ).fetchone()
         return _row_to_dict(row) if row else None
     finally:
@@ -102,14 +113,19 @@ async def _fetch_order(order_id: str):
     """GET the order from Orders service. Returns (order, None) or (None, error_tuple)."""
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            resp = await client.get(f"{ORDERS_URL}/api/orders/{order_id}")
+            resp = await client.get(
+                f"{ORDERS_URL}/api/orders/{order_id}"
+            )
     except httpx.TransportError:
         return None, (503, {"message": "Orders service is unavailable"})
 
     if resp.status_code == 404:
         return None, (404, {"message": f"Order {order_id} not found"})
     if resp.status_code != 200:
-        return None, (502, {"message": "Unexpected response from Orders service"})
+        return None, (
+            502,
+            {"message": "Unexpected response from Orders service"},
+        )
 
     return resp.json(), None
 
@@ -120,31 +136,42 @@ async def create_shipment(order_id: str, address: dict):
     1. Verify the order exists and is PAID.
     2. Check no shipment already exists for this order.
     3. Insert the shipment.
+    4. Publish ShipmentCreated.
     Returns (shipment_dict, None) on success or (None, error_tuple) on failure.
     """
 
-    # --- 1. Fetch the order from Orders service ---
+    # 1. Fetch the order from Orders service
     order, error = await _fetch_order(order_id)
     if error:
         return None, error
 
-    # --- 2. Verify the order is PAID ---
+    # 2. Verify the order is PAID
     if order.get("status") != "PAID":
         return None, (
             409,
-            {"message": f"Order {order_id} is not paid (current: {order.get('status')})"},
+            {
+                "message": (
+                    f"Order {order_id} is not paid "
+                    f"(current: {order.get('status')})"
+                )
+            },
         )
 
-    # --- 3. Check for duplicate shipment ---
+    # 3. Check for duplicate shipment
     conn = get_db()
     try:
         existing = conn.execute(
-            "SELECT id FROM shipments WHERE order_id = ?", (order_id,)
+            "SELECT id FROM shipments WHERE order_id = ?",
+            (order_id,),
         ).fetchone()
-        if existing:
-            return None, (409, {"message": f"Shipment already exists for order {order_id}"})
 
-        # --- 4. Insert the shipment ---
+        if existing:
+            return None, (
+                409,
+                {"message": f"Shipment already exists for order {order_id}"},
+            )
+
+        # 4. Insert the shipment
         shipment_id = f"shipment-{uuid.uuid4().hex[:8]}"
         tracking = _generate_tracking_number()
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -178,59 +205,102 @@ async def create_shipment(order_id: str, address: dict):
     finally:
         conn.close()
 
+    # 5. Publish only after the shipment has been saved successfully
+    publish_event(
+        event_type="ShipmentCreated",
+        source="shipping",
+        order_id=order_id,
+        data={
+            "shipmentId": shipment_id,
+            "trackingNumber": tracking,
+            "city": address["city"],
+        },
+    )
+
     return shipment, None
 
 
 async def update_shipment_status(shipment_id: str, new_status: str):
     """
     Advance the shipment to the next status.
-    Only sequential transitions are allowed: PREPARING → SHIPPED → IN_TRANSIT → DELIVERED.
-    The shipment must stay consistent with its order: a cancelled order never moves forward.
+    Only sequential transitions are allowed:
+    PREPARING -> SHIPPED -> IN_TRANSIT -> DELIVERED.
+
+    The shipment must stay consistent with its order:
+    a cancelled order never moves forward.
+
     Returns (shipment_dict, None) on success or (None, error_tuple) on failure.
     """
     shipment = get_shipment_by_id(shipment_id)
     if not shipment:
-        return None, (404, {"message": f"Shipment {shipment_id} not found"})
+        return None, (
+            404,
+            {"message": f"Shipment {shipment_id} not found"},
+        )
 
     current_status = shipment["status"]
 
     # Check if transition is valid
     expected_next = VALID_TRANSITIONS.get(current_status)
+
     if expected_next is None:
         return None, (
             409,
-            {"message": f"Shipment is already {current_status}, no further transitions allowed"},
+            {
+                "message": (
+                    f"Shipment is already {current_status}, "
+                    "no further transitions allowed"
+                )
+            },
         )
+
     if new_status != expected_next:
         return None, (
             409,
-            {"message": f"Cannot transition from {current_status} to {new_status}. Expected: {expected_next}"},
+            {
+                "message": (
+                    f"Cannot transition from {current_status} to {new_status}. "
+                    f"Expected: {expected_next}"
+                )
+            },
         )
 
     # Ask Orders for the current order status
     order, error = await _fetch_order(shipment["orderId"])
     if error:
         return None, error
+
     if order.get("status") == "CANCELLED":
         return None, (
             409,
-            {"message": f"Order {shipment['orderId']} is cancelled, shipment cannot move to {new_status}"},
+            {
+                "message": (
+                    f"Order {shipment['orderId']} is cancelled, "
+                    f"shipment cannot move to {new_status}"
+                )
+            },
         )
 
     # Keep the order in sync: SHIPPED and DELIVERED are also order statuses.
     # Orders is updated first, so a shipped order can no longer be cancelled.
-    if new_status in ORDER_STATUS_FOR_SHIPMENT and order.get("status") != new_status:
+    if (
+        new_status in ORDER_STATUS_FOR_SHIPMENT
+        and order.get("status") != new_status
+    ):
         error = await _set_order_status(shipment["orderId"], new_status)
         if error:
             return None, error
 
-    now =datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     conn = get_db()
     try:
-        # "AND status = ?" makes sure nobody changed the shipment while we were calling Orders
+        # "AND status = ?" makes sure nobody changed the shipment
+        # while we were calling Orders.
         cur = conn.execute(
-            "UPDATE shipments SET status = ?, updated_at = ? WHERE id = ? AND status = ?",
+            """UPDATE shipments
+               SET status = ?, updated_at = ?
+               WHERE id = ? AND status = ?""",
             (new_status, now, shipment_id, current_status),
         )
         conn.commit()
@@ -238,9 +308,29 @@ async def update_shipment_status(shipment_id: str, new_status: str):
         conn.close()
 
     if cur.rowcount == 0:
-        return None, (409, {"message": f"Shipment {shipment_id} was updated by another request, please retry"})
+        return None, (
+            409,
+            {
+                "message": (
+                    f"Shipment {shipment_id} was updated by another request, "
+                    "please retry"
+                )
+            },
+        )
 
     shipment["status"] = new_status
     shipment["updatedAt"] = now
-    return shipment, None
 
+    # Publish only after the SQLite update succeeds
+    publish_event(
+        event_type="ShipmentStatusChanged",
+        source="shipping",
+        order_id=shipment["orderId"],
+        data={
+            "shipmentId": shipment_id,
+            "from": current_status,
+            "to": new_status,
+        },
+    )
+
+    return shipment, None

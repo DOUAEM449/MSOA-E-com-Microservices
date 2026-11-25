@@ -3,3 +3,4 @@ uvicorn
 httpx
 pydantic
 pytest
+confluent-kafka>=2.6,<3.0

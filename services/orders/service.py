@@ -1,3 +1,4 @@
+
 import asyncio
 import logging
 import math
@@ -12,6 +13,7 @@ from fastapi import HTTPException
 
 from database import DatabasePath, get_connection
 from schemas import CreateOrderInput, OrderStatus
+from events import publish_event
 
 
 logger = logging.getLogger(__name__)
@@ -23,19 +25,29 @@ STATUS_TRANSITIONS = {
     OrderStatus.DELIVERED: set(),
     OrderStatus.CANCELLED: set(),
 }
-RESERVABLE_STATUSES = {OrderStatus.PENDING_PAYMENT, OrderStatus.PAID}
+
+RESERVABLE_STATUSES = {
+    OrderStatus.PENDING_PAYMENT,
+    OrderStatus.PAID,
+}
 
 
 def _created_at() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace(
-        "+00:00", "Z"
-    )
+    return datetime.now(timezone.utc).isoformat(
+        timespec="milliseconds"
+    ).replace("+00:00", "Z")
 
 
-def _load_order(connection: sqlite3.Connection, order_id: str) -> Optional[Dict[str, Any]]:
+def _load_order(
+    connection: sqlite3.Connection,
+    order_id: str
+) -> Optional[Dict[str, Any]]:
+
     order = connection.execute(
-        "SELECT * FROM orders WHERE id = ?", (order_id,)
+        "SELECT * FROM orders WHERE id = ?",
+        (order_id,)
     ).fetchone()
+
     if order is None:
         return None
 
@@ -48,6 +60,7 @@ def _load_order(connection: sqlite3.Connection, order_id: str) -> Optional[Dict[
         """,
         (order_id,),
     ).fetchall()
+
     return {
         "id": order["id"],
         "userId": order["user_id"],
@@ -71,63 +84,98 @@ def _load_order(connection: sqlite3.Connection, order_id: str) -> Optional[Dict[
     }
 
 
-def get_order(database_path: DatabasePath, order_id: str) -> Dict[str, Any]:
+def get_order(
+    database_path: DatabasePath,
+    order_id: str
+) -> Dict[str, Any]:
+
     with get_connection(database_path) as connection:
         order = _load_order(connection, order_id)
+
     if order is None:
-        raise HTTPException(status_code=404, detail="Order not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found."
+        )
+
     return order
 
 
-def get_orders(database_path: DatabasePath, user_id: str) -> List[Dict[str, Any]]:
+def get_orders(
+    database_path: DatabasePath,
+    user_id: str
+) -> List[Dict[str, Any]]:
+
     with get_connection(database_path) as connection:
         rows = connection.execute(
-            "SELECT id FROM orders WHERE user_id = ? ORDER BY created_at DESC, id",
+            """
+            SELECT id FROM orders
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id
+            """,
             (user_id,),
         ).fetchall()
+
         return [
             order
             for row in rows
-            if (order := _load_order(connection, row["id"])) is not None
+            if (
+                order := _load_order(connection, row["id"])
+            ) is not None
         ]
 
 
-def _upstream_message(response: httpx.Response, fallback: str) -> str:
+def _upstream_message(
+    response: httpx.Response,
+    fallback: str
+) -> str:
+
     try:
         body = response.json()
     except ValueError:
         return fallback
+
     if isinstance(body, dict) and isinstance(body.get("message"), str):
         return body["message"]
+
     return fallback
 
 
-def _parse_product(product_id: int, response: httpx.Response) -> Tuple[str, float]:
+def _parse_product(
+    product_id: int,
+    response: httpx.Response
+) -> Tuple[str, float]:
+
     if response.status_code == 404:
         raise HTTPException(
             status_code=404,
             detail=f"Product {product_id} was not found in the catalog.",
         )
+
     if response.is_error:
         logger.warning(
             "Catalog returned HTTP %s while loading product %s",
             response.status_code,
             product_id,
         )
+
         raise HTTPException(
             status_code=502,
             detail="The catalog service could not provide product information.",
         )
+
     try:
         product = response.json()
         name = product["name"]
         raw_price = product["price"]
-        # Support both Catalog API v1 (numeric price) and v2
-        # ({amount, currency}) during an independent microservice migration.
+
+        # Support both Catalog API v1 and v2.
         if isinstance(raw_price, dict):
             raw_price = raw_price["amount"]
+
         price_decimal = Decimal(str(raw_price))
         price = float(price_decimal)
+
         if (
             not isinstance(name, str)
             or not name.strip()
@@ -137,12 +185,23 @@ def _parse_product(product_id: int, response: httpx.Response) -> Tuple[str, floa
             or not math.isfinite(price)
         ):
             raise ValueError("Invalid product fields")
-    except (KeyError, TypeError, ValueError, InvalidOperation):
-        logger.warning("Catalog returned invalid information for product %s", product_id)
+
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        InvalidOperation
+    ):
+        logger.warning(
+            "Catalog returned invalid information for product %s",
+            product_id
+        )
+
         raise HTTPException(
             status_code=502,
             detail="The catalog service returned invalid product information.",
         )
+
     return name.strip(), price
 
 
@@ -151,23 +210,33 @@ async def _catalog_products(
     catalog_url: str,
     product_ids: List[int],
 ) -> Dict[int, Tuple[str, float]]:
+
     try:
         responses = await asyncio.gather(
             *(
-                client.get(f"{catalog_url.rstrip('/')}/products/{product_id}")
+                client.get(
+                    f"{catalog_url.rstrip('/')}/products/{product_id}"
+                )
                 for product_id in product_ids
             )
         )
+
     except httpx.TimeoutException:
         logger.warning("Catalog request timed out")
+
         raise HTTPException(
-            status_code=504, detail="The catalog service timed out."
+            status_code=504,
+            detail="The catalog service timed out."
         )
+
     except httpx.RequestError:
         logger.exception("Could not reach catalog service")
+
         raise HTTPException(
-            status_code=503, detail="The catalog service is unavailable."
+            status_code=503,
+            detail="The catalog service is unavailable."
         )
+
     return {
         product_id: _parse_product(product_id, response)
         for product_id, response in zip(product_ids, responses)
@@ -175,56 +244,92 @@ async def _catalog_products(
 
 
 async def _reserve_inventory(
-    client: httpx.AsyncClient, inventory_url: str, items: List[Dict[str, int]]
+    client: httpx.AsyncClient,
+    inventory_url: str,
+    items: List[Dict[str, int]]
 ) -> None:
+
     try:
         response = await client.post(
             f"{inventory_url.rstrip('/')}/api/inventory/reserve",
             json={"items": items},
         )
+
     except httpx.TimeoutException:
         logger.warning("Inventory reservation request timed out")
+
         raise HTTPException(
             status_code=504,
             detail="The inventory service timed out while reserving stock.",
         )
+
     except httpx.RequestError:
         logger.exception("Could not reach inventory service")
+
         raise HTTPException(
             status_code=503,
             detail="The inventory service is unavailable.",
         )
+
     if response.is_error:
-        message = _upstream_message(response, "Inventory reservation failed.")
+        message = _upstream_message(
+            response,
+            "Inventory reservation failed."
+        )
+
         status_code = 409 if response.status_code == 409 else 502
-        raise HTTPException(status_code=status_code, detail=message)
+
+        raise HTTPException(
+            status_code=status_code,
+            detail=message
+        )
 
 
 async def _release_inventory(
-    client: httpx.AsyncClient, inventory_url: str, items: List[Dict[str, int]]
+    client: httpx.AsyncClient,
+    inventory_url: str,
+    items: List[Dict[str, int]]
 ) -> None:
+
     try:
         response = await client.post(
             f"{inventory_url.rstrip('/')}/api/inventory/release",
             json={"items": items},
         )
+
     except httpx.TimeoutException:
         logger.warning("Inventory release request timed out")
+
         raise HTTPException(
             status_code=504,
             detail="The inventory service timed out while releasing stock.",
         )
+
     except httpx.RequestError:
         logger.exception("Could not reach inventory service")
+
         raise HTTPException(
             status_code=503,
             detail="The inventory service is unavailable.",
         )
-    if response.is_error:
-        message = _upstream_message(response, "Inventory release failed.")
-        status_code = 409 if response.status_code == 409 else 502
-        raise HTTPException(status_code=status_code, detail=message)
 
+    if response.is_error:
+        message = _upstream_message(
+            response,
+            "Inventory release failed."
+        )
+
+        status_code = 409 if response.status_code == 409 else 502
+
+        raise HTTPException(
+            status_code=status_code,
+            detail=message
+        )
+
+
+# ==========================================
+# CREATE ORDER + KAFKA EVENT
+# ==========================================
 
 async def create_order(
     database_path: DatabasePath,
@@ -233,11 +338,14 @@ async def create_order(
     inventory_url: str,
     payload: CreateOrderInput,
 ) -> Dict[str, Any]:
+
     quantities: Dict[int, int] = {}
+
     for item in payload.items:
         quantities[item.product_id] = (
             quantities.get(item.product_id, 0) + item.quantity
         )
+
         if quantities[item.product_id] > 10000:
             raise HTTPException(
                 status_code=400,
@@ -245,7 +353,13 @@ async def create_order(
             )
 
     product_ids = list(quantities)
-    products = await _catalog_products(client, catalog_url, product_ids)
+
+    products = await _catalog_products(
+        client,
+        catalog_url,
+        product_ids
+    )
+
     order_items = [
         {
             "productId": product_id,
@@ -255,26 +369,46 @@ async def create_order(
         }
         for product_id in product_ids
     ]
+
     inventory_items = [
-        {"productId": item["productId"], "quantity": item["quantity"]}
+        {
+            "productId": item["productId"],
+            "quantity": item["quantity"]
+        }
         for item in order_items
     ]
+
     total_decimal = sum(
         (
             Decimal(str(item["price"])) * item["quantity"]
             for item in order_items
         ),
         Decimal("0"),
-    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    total = float(total_decimal)
-    if not math.isfinite(total):
-        raise HTTPException(status_code=400, detail="Order total is invalid.")
+    ).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
 
-    await _reserve_inventory(client, inventory_url, inventory_items)
+    total = float(total_decimal)
+
+    if not math.isfinite(total):
+        raise HTTPException(
+            status_code=400,
+            detail="Order total is invalid."
+        )
+
+    await _reserve_inventory(
+        client,
+        inventory_url,
+        inventory_items
+    )
+
     order_id = str(uuid4())
     created_at = _created_at()
+
     try:
         with get_connection(database_path) as connection:
+
             connection.execute(
                 """
                 INSERT INTO orders (
@@ -293,9 +427,12 @@ async def create_order(
                     created_at,
                 ),
             )
+
             connection.executemany(
                 """
-                INSERT INTO order_items (order_id, product_id, name, price, quantity)
+                INSERT INTO order_items (
+                    order_id, product_id, name, price, quantity
+                )
                 VALUES (?, ?, ?, ?, ?)
                 """,
                 [
@@ -309,15 +446,26 @@ async def create_order(
                     for item in order_items
                 ],
             )
+
     except sqlite3.Error:
-        logger.exception("Could not persist order %s", order_id)
+        logger.exception(
+            "Could not persist order %s",
+            order_id
+        )
+
         try:
-            await _release_inventory(client, inventory_url, inventory_items)
+            await _release_inventory(
+                client,
+                inventory_url,
+                inventory_items
+            )
+
         except HTTPException:
             logger.exception(
                 "Could not compensate inventory reservation for order %s",
                 order_id,
             )
+
             raise HTTPException(
                 status_code=500,
                 detail=(
@@ -325,33 +473,83 @@ async def create_order(
                     "released. Contact support."
                 ),
             )
+
         raise HTTPException(
             status_code=500,
             detail="Order could not be saved. Reserved stock was released.",
         )
-    return get_order(database_path, order_id)
+
+    # Retrieve the successfully persisted order.
+    order = get_order(database_path, order_id)
+
+    # Publish OrderCreated only after successful persistence.
+    publish_event(
+        event_type="OrderCreated",
+        source="orders",
+        order_id=order_id,
+        data={
+            "userId": order["userId"],
+            "total": order["total"],
+            "itemsCount": len(order["items"]),
+            "items": [
+                {
+                    "productId": item["productId"],
+                    "quantity": item["quantity"],
+                    "price": item["price"],
+                }
+                for item in order["items"]
+            ],
+        },
+    )
+
+    return order
 
 
 def _load_order_and_status(
-    connection: sqlite3.Connection, order_id: str
+    connection: sqlite3.Connection,
+    order_id: str
 ) -> Tuple[Dict[str, Any], OrderStatus]:
+
     row = connection.execute(
-        "SELECT status FROM orders WHERE id = ?", (order_id,)
+        "SELECT status FROM orders WHERE id = ?",
+        (order_id,)
     ).fetchone()
+
     if row is None:
-        raise HTTPException(status_code=404, detail="Order not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found."
+        )
+
     try:
         status = OrderStatus(row["status"])
+
     except ValueError:
-        logger.error("Order %s has an unsupported status %r", order_id, row["status"])
-        raise HTTPException(
-            status_code=409, detail="Order has an unsupported current status."
+        logger.error(
+            "Order %s has an unsupported status %r",
+            order_id,
+            row["status"]
         )
+
+        raise HTTPException(
+            status_code=409,
+            detail="Order has an unsupported current status."
+        )
+
     order = _load_order(connection, order_id)
+
     if order is None:
-        raise HTTPException(status_code=404, detail="Order not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found."
+        )
+
     return order, status
 
+
+# ==========================================
+# UPDATE ORDER STATUS + KAFKA EVENT
+# ==========================================
 
 async def update_order_status(
     database_path: DatabasePath,
@@ -360,26 +558,66 @@ async def update_order_status(
     order_id: str,
     new_status: OrderStatus,
 ) -> Dict[str, Any]:
+
     if new_status == OrderStatus.CANCELLED:
-        return await cancel_order(database_path, client, inventory_url, order_id)
+        return await cancel_order(
+            database_path,
+            client,
+            inventory_url,
+            order_id
+        )
+
+    previous_status = None
 
     with get_connection(database_path) as connection:
+
         connection.execute("BEGIN IMMEDIATE")
-        _, current_status = _load_order_and_status(connection, order_id)
-        # Same status again is accepted without change (idempotent): Shipping sets
-        # SHIPPED/DELIVERED, then the frontend tracker sends the same status.
+
+        _, current_status = _load_order_and_status(
+            connection,
+            order_id
+        )
+
+        # Preserve existing idempotent behavior.
         if new_status != current_status:
+
             if new_status not in STATUS_TRANSITIONS[current_status]:
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Invalid status transition: {current_status.value} to {new_status.value}.",
+                    detail=(
+                        f"Invalid status transition: "
+                        f"{current_status.value} to {new_status.value}."
+                    ),
                 )
+
+            previous_status = current_status.value
+
             connection.execute(
                 "UPDATE orders SET status = ? WHERE id = ?",
                 (new_status.value, order_id),
             )
-    return get_order(database_path, order_id)
 
+    order = get_order(database_path, order_id)
+
+    # Publish only when the status actually changed.
+    if previous_status is not None:
+
+        publish_event(
+            event_type="OrderStatusChanged",
+            source="orders",
+            order_id=order_id,
+            data={
+                "from": previous_status,
+                "to": new_status.value,
+            },
+        )
+
+    return order
+
+
+# ==========================================
+# CANCEL ORDER
+# ==========================================
 
 async def cancel_order(
     database_path: DatabasePath,
@@ -387,35 +625,68 @@ async def cancel_order(
     inventory_url: str,
     order_id: str,
 ) -> Dict[str, Any]:
+
     with get_connection(database_path) as connection:
+
         connection.execute("BEGIN IMMEDIATE")
-        order, current_status = _load_order_and_status(connection, order_id)
+
+        order, current_status = _load_order_and_status(
+            connection,
+            order_id
+        )
+
         if current_status not in RESERVABLE_STATUSES:
             raise HTTPException(
                 status_code=409,
                 detail="This order cannot be cancelled in its current status.",
             )
+
         previous_status = current_status.value
+
         connection.execute(
             "UPDATE orders SET status = ? WHERE id = ?",
             (OrderStatus.CANCELLED.value, order_id),
         )
 
     items = [
-        {"productId": item["productId"], "quantity": item["quantity"]}
+        {
+            "productId": item["productId"],
+            "quantity": item["quantity"]
+        }
         for item in order["items"]
     ]
+
     try:
-        await _release_inventory(client, inventory_url, items)
+        await _release_inventory(
+            client,
+            inventory_url,
+            items
+        )
+
     except HTTPException:
+
         try:
             with get_connection(database_path) as connection:
+
                 connection.execute(
-                    "UPDATE orders SET status = ? WHERE id = ? AND status = ?",
-                    (previous_status, order_id, OrderStatus.CANCELLED.value),
+                    """
+                    UPDATE orders
+                    SET status = ?
+                    WHERE id = ? AND status = ?
+                    """,
+                    (
+                        previous_status,
+                        order_id,
+                        OrderStatus.CANCELLED.value
+                    ),
                 )
+
         except sqlite3.Error:
-            logger.exception("Could not restore status for cancelled order %s", order_id)
+            logger.exception(
+                "Could not restore status for cancelled order %s",
+                order_id
+            )
+
             raise HTTPException(
                 status_code=500,
                 detail=(
@@ -423,5 +694,7 @@ async def cancel_order(
                     "restored. Contact support."
                 ),
             )
+
         raise
+
     return get_order(database_path, order_id)

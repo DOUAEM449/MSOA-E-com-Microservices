@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
+from events import close_producer
 from database import DATABASE_PATH, DatabasePath, initialize_database
 from schemas import CreateOrderInput, OrderStatus, UpdateStatusInput
 from service import (
@@ -51,12 +51,14 @@ def create_app(
         app.state.inventory_url = resolved_inventory_url
         app.state.http_client = httpx.AsyncClient(
             timeout=httpx.Timeout(5.0, connect=2.0),
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+            limits=httpx.Limits(max_connections=100,
+                                max_keepalive_connections=20),
             transport=http_transport,
         )
         try:
             yield
         finally:
+            close_producer()
             await app.state.http_client.aclose()
 
     application = FastAPI(
@@ -97,7 +99,8 @@ def create_app(
     async def http_exception_handler(
         _request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
-        message = exc.detail if isinstance(exc.detail, str) else "Request failed."
+        message = exc.detail if isinstance(
+            exc.detail, str) else "Request failed."
         return JSONResponse(
             status_code=exc.status_code,
             content={"message": message},
@@ -171,7 +174,8 @@ def _configured_port() -> int:
     try:
         port = int(os.getenv("PORT", "8084"))
     except ValueError as exc:
-        raise RuntimeError("PORT must be an integer between 1 and 65535.") from exc
+        raise RuntimeError(
+            "PORT must be an integer between 1 and 65535.") from exc
     if not 1 <= port <= 65535:
         raise RuntimeError("PORT must be an integer between 1 and 65535.")
     return port

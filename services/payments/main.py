@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from database import DATABASE_PATH, DatabasePath, initialize_database
 from schemas import PaymentCreate
+from messaging import ShipmentRequestPublisher
 import payments_service
 
 logging.basicConfig(
@@ -26,6 +27,7 @@ def create_app(
     database_path: Optional[DatabasePath] = None,
     orders_url: Optional[str] = None,
     http_transport: Optional[httpx.AsyncBaseTransport] = None,
+    shipment_publisher: Optional[ShipmentRequestPublisher] = None,
 ) -> FastAPI:
     resolved_database_path = Path(database_path or DATABASE_PATH)
     resolved_orders_url = (orders_url or os.getenv(
@@ -42,10 +44,15 @@ def create_app(
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
             transport=http_transport,
         )
+        # Lab 4: RabbitMQ producer (connects lazily on the first payment).
+        application.state.shipment_publisher = (
+            shipment_publisher or ShipmentRequestPublisher()
+        )
         try:
             yield
         finally:
             await application.state.http_client.aclose()
+            application.state.shipment_publisher.close()
 
     application = FastAPI(
         title="Payments Service",
@@ -150,6 +157,7 @@ def create_app(
             application.state.orders_url,
             body.orderId.strip(),
             body.method.strip(),
+            application.state.shipment_publisher,
         )
 
         if error:

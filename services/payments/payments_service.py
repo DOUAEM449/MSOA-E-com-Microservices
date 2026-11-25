@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 import sqlite3
 from datetime import datetime, timezone
@@ -7,8 +9,11 @@ from typing import Optional, Tuple, Union
 import httpx
 
 from database import get_db, DatabasePath
+from messaging import ShipmentRequestPublisher, build_shipment_requested
 
 TIMEOUT = 5.0  # seconds
+
+logger = logging.getLogger(__name__)
 
 
 def _row_to_dict(row):
@@ -51,6 +56,7 @@ async def create_payment(
     orders_url: str,
     order_id: str,
     method: str,
+    shipment_publisher: Optional[ShipmentRequestPublisher] = None,
 ) -> Tuple[Optional[dict], Optional[Tuple[int, dict]]]:
     """
     Create a payment for the given order.
@@ -59,6 +65,8 @@ async def create_payment(
     3. PATCH the order status to PAID.
        If that fails, the payment is deleted again (compensation),
        so a payment never exists for an order that is not PAID.
+    4. Publish ShipmentRequested to RabbitMQ (Lab 4). The customer does not
+       wait for Shipping, and a RabbitMQ failure never fails the payment.
     Returns (payment_dict, None) on success or (None, error_tuple) on failure.
     """
 
@@ -126,7 +134,30 @@ async def create_payment(
         print(f"[payments] PATCH to PAID failed for {order_id}, payment {payment_id} rolled back")
         return None, error
 
+    # --- 6. Request the shipment asynchronously (RabbitMQ) ---
+    if shipment_publisher is not None:
+        await _request_shipment(shipment_publisher, order, payment)
+
     return payment, None
+
+
+async def _request_shipment(
+    publisher: ShipmentRequestPublisher, order: dict, payment: dict
+) -> None:
+    """Publish ShipmentRequested. Logs and swallows any failure: the payment is already done."""
+    message = build_shipment_requested(order, payment)
+    try:
+        # pika is blocking: run it in a worker thread so the event loop stays free.
+        published = await asyncio.to_thread(publisher.publish, message)
+    except Exception:
+        logger.exception("Unexpected error while publishing %s", message["messageId"])
+        published = False
+    if not published:
+        logger.warning(
+            "ShipmentRequested for order %s was NOT published (RabbitMQ unavailable). "
+            "Payment %s is still valid.",
+            payment["orderId"], payment["id"],
+        )
 
 
 async def _mark_order_paid(

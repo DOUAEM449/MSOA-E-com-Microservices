@@ -30,8 +30,9 @@ def make_client(
     order: Optional[dict] = None,
     patch_status: int = 200,
     orders_down: bool = False,
+    publisher=None,
 ) -> TestClient:
-    """Create a TestClient with a mock Orders service."""
+    """Create a TestClient with a mock Orders service and a fake RabbitMQ publisher."""
 
     if order is None:
         order = ORDER_PENDING
@@ -64,8 +65,28 @@ def make_client(
         database_path=tmp_path / "payments.db",
         orders_url="http://orders.test",
         http_transport=httpx.MockTransport(upstream),
+        shipment_publisher=publisher if publisher is not None else FakePublisher(),
     )
     return TestClient(app)
+
+
+class FakePublisher:
+    """Stands in for ShipmentRequestPublisher: records messages, no RabbitMQ needed."""
+
+    def __init__(self, result: bool = True, error: Optional[Exception] = None) -> None:
+        self.messages: list = []
+        self.result = result
+        self.error = error
+        self.closed = False
+
+    def publish(self, message: dict) -> bool:
+        if self.error is not None:
+            raise self.error
+        self.messages.append(message)
+        return self.result
+
+    def close(self) -> None:
+        self.closed = True
 
 
 # ── Tests ────────────────────────────────────────────────────────

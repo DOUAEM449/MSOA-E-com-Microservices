@@ -45,6 +45,7 @@ Set the `orderId` variable to a valid `PENDING_PAYMENT` order ID before running 
 | Variable     | Default                    | Description               |
 |--------------|----------------------------|---------------------------|
 | `ORDERS_URL` | `http://localhost:8084`    | URL of the Orders service |
+| `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/%2F` | RabbitMQ broker (Lab 4) |
 
 ## Business rules
 
@@ -55,3 +56,14 @@ Set the `orderId` variable to a valid `PENDING_PAYMENT` order ID before running 
 - If that update fails, the payment is deleted again (compensation) and an error is returned (409 / 502 / 503)
 - If Orders service is unavailable → 503
 - Errors are always JSON `{"message": "..."}`; invalid or missing fields → 400
+
+## Shipment requests via RabbitMQ (Lab 4)
+
+Once the order is `PAID`, Payments publishes a `ShipmentRequested` message to the durable queue `shipping_requests`. The Shipping service consumes it. Contract: `docs/LAB4_CONTRACTS.md` §2. Code: `messaging.py`.
+
+- The response is returned without waiting for Shipping.
+- One connection and channel are reused. The connection is opened on the first payment, so Payments starts even if RabbitMQ is down.
+- Messages are persistent, publisher confirms are on, and a lost connection is retried once.
+- If RabbitMQ is unavailable, the payment still succeeds (201). The failure is logged as a warning: `ShipmentRequested for order … was NOT published`.
+
+Check it by hand: with Shipping stopped, pay an order, then open http://localhost:15672 → Queues → `shipping_requests`. You should see **Ready = 1**.

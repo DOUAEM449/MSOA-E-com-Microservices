@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,14 +9,18 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from routes import router
 from events import close_producer
+from consumer import ShippingConsumer
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    consumer = ShippingConsumer()
+    consumer.start()
     try:
         yield
     finally:
-        close_producer()
+        await asyncio.to_thread(consumer.stop)
+        await asyncio.to_thread(close_producer)
 
 
 app = FastAPI(

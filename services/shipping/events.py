@@ -4,8 +4,6 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from confluent_kafka import Producer
-
 logger = logging.getLogger("shipping.kafka")
 
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get(
@@ -21,6 +19,8 @@ def _get_producer():
     global _producer
 
     if _producer is None:
+        from confluent_kafka import Producer
+
         _producer = Producer({
             "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
         })

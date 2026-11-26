@@ -5,6 +5,7 @@ import string
 from datetime import datetime, timezone
 
 import httpx
+from starlette.concurrency import run_in_threadpool
 
 from database import get_db
 from events import publish_event
@@ -127,27 +128,24 @@ async def _fetch_order(order_id: str):
             {"message": "Unexpected response from Orders service"},
         )
 
-    return resp.json(), None
+    try:
+        order = resp.json()
+        if isinstance(order, dict) and isinstance(order.get("status"), str):
+            return order, None
+    except ValueError:
+        pass
+    return None, (502, {"message": "Invalid response from Orders service"})
 
 
 async def create_shipment(order_id: str, address: dict):
-    """
-    Create a shipment for the given order.
-    1. Verify the order exists and is PAID.
-    2. Check no shipment already exists for this order.
-    3. Insert the shipment.
-    4. Publish ShipmentCreated.
-    Returns (shipment_dict, None) on success or (None, error_tuple) on failure.
-    """
+    """Return (shipment, error, created) after resolving concurrent requests."""
+    existing = await run_in_threadpool(get_shipment_by_order, order_id)
+    if existing:
+        return existing, None, False
 
-    # 1. Fetch the order from Orders service
     order, error = await _fetch_order(order_id)
-    if error:
-        return None, error
-
-    # 2. Verify the order is PAID
-    if order.get("status") != "PAID":
-        return None, (
+    if error is None and order.get("status") != "PAID":
+        error = (
             409,
             {
                 "message": (
@@ -157,29 +155,29 @@ async def create_shipment(order_id: str, address: dict):
             },
         )
 
-    # 3. Check for duplicate shipment
+    if error:
+        # Another caller may have saved a shipment while this request awaited Orders.
+        existing = await run_in_threadpool(get_shipment_by_order, order_id)
+        if existing:
+            return existing, None, False
+        return None, error, False
+
+    shipment, created = await run_in_threadpool(_save_shipment, order_id, address)
+    return shipment, None, created
+
+
+def _save_shipment(order_id: str, address: dict):
     conn = get_db()
     try:
-        existing = conn.execute(
-            "SELECT id FROM shipments WHERE order_id = ?",
-            (order_id,),
-        ).fetchone()
-
-        if existing:
-            return None, (
-                409,
-                {"message": f"Shipment already exists for order {order_id}"},
-            )
-
-        # 4. Insert the shipment
         shipment_id = f"shipment-{uuid.uuid4().hex[:8]}"
         tracking = _generate_tracking_number()
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        conn.execute(
+        cursor = conn.execute(
             """INSERT INTO shipments
                (id, order_id, recipient_name, address, city, tracking_number, status, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, 'PREPARING', ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, 'PREPARING', ?, ?)
+               ON CONFLICT(order_id) DO NOTHING""",
             (
                 shipment_id,
                 order_id,
@@ -191,21 +189,17 @@ async def create_shipment(order_id: str, address: dict):
                 now,
             ),
         )
+        row = conn.execute(
+            "SELECT * FROM shipments WHERE order_id = ?", (order_id,)
+        ).fetchone()
         conn.commit()
-
-        shipment = {
-            "id": shipment_id,
-            "orderId": order_id,
-            "address": address,
-            "trackingNumber": tracking,
-            "status": "PREPARING",
-            "createdAt": now,
-            "updatedAt": now,
-        }
+        shipment = _row_to_dict(row)
     finally:
         conn.close()
 
-    # 5. Publish only after the shipment has been saved successfully
+    if cursor.rowcount == 0:
+        return shipment, False
+
     publish_event(
         event_type="ShipmentCreated",
         source="shipping",
@@ -217,7 +211,7 @@ async def create_shipment(order_id: str, address: dict):
         },
     )
 
-    return shipment, None
+    return shipment, True
 
 
 async def update_shipment_status(shipment_id: str, new_status: str):

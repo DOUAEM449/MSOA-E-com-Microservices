@@ -265,3 +265,52 @@ Après le test de rétention et le redémarrage du Consumer :
 Le service Analytics est intégré au script `scripts/start-services.ps1` et démarre sur le port 8087 avec le contrôle de santé `/health`.
 
 **Conclusion :** Le service Analytics assure la consommation des événements Kafka, leur stockage idempotent, la consultation des statistiques et la reprise du traitement après une interruption temporaire.
+
+### Q5b – Kafka Producers : Intégration et validation
+
+**1. Producteurs Kafka (Producers)**
+
+Les microservices Orders, Payments et Shipping publient des événements métier dans le topic Kafka `ecommerce-events`.
+
+La publication des événements intervient après la réussite des opérations métier et l'enregistrement des données dans les bases de données.
+
+**2. Événements publiés**
+
+Le test d'intégration a confirmé la réception des événements suivants :
+
+- **Orders :** `OrderCreated`, `OrderStatusChanged`
+- **Payments :** `PaymentCompleted`
+- **Shipping :** `ShipmentCreated`, `ShipmentStatusChanged`
+
+**3. Structure des événements (Event Schema)**
+
+Chaque événement utilise une structure JSON commune (_Event Envelope_) contenant les champs suivants :
+
+- `eventId` : identifiant unique de l'événement.
+- `eventType` : type de l'événement.
+- `source` : microservice à l'origine de l'événement.
+- `occurredAt` : date et heure de création de l'événement au format UTC.
+- `orderId` : identifiant de la commande associée.
+- `data` : données spécifiques à l'événement.
+
+La clé du message Kafka est définie à partir de `orderId`. Ainsi, les événements associés à une même commande utilisent la même clé de partitionnement.
+
+**4. Configuration du topic Kafka**
+
+Le topic `ecommerce-events` possède la configuration suivante :
+
+- Nombre de partitions : **3**.
+- Facteur de réplication : **1**.
+- Durée de rétention : **7 jours** (`604800000 ms`).
+
+**5. Résultats du test d'intégration**
+
+Un scénario réel a été exécuté à travers l'application e-commerce : création d'une commande, réalisation du paiement et suivi du processus d'expédition.
+
+Les événements générés ont été observés à l'aide d'un consommateur Kafka en ligne de commande, connecté au broker `localhost:9092`.
+
+Le consommateur a confirmé la réception de tous les types d'événements attendus, notamment la création des commandes, la confirmation des paiements, les changements de statut des commandes et le cycle de vie des expéditions.
+
+Les messages affichés ont également permis de vérifier la présence des champs de l'enveloppe JSON commune ainsi que l'utilisation de `orderId` comme clé des messages Kafka.
+
+Des captures d'écran du consommateur Kafka et du déroulement du scénario dans l'application e-commerce sont présentées comme preuves de cette intégration.

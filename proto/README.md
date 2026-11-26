@@ -1,6 +1,7 @@
 # LAB 4 — Scénario 1 : communication haute performance (gRPC)
 
 **Responsables :** Youssef et Taha
+**Rapports :** [côté serveur, Youssef](../docs/rapport/lab4-grpc-server-youssef.md) · [côté client et benchmark, Taha](../docs/rapport/lab4-grpc-client-taha.md) · captures dans [`docs/lab4-evidence/grpc/`](../docs/lab4-evidence/grpc/)
 **Services concernés :** Orders (client gRPC) → Inventory (serveur gRPC)
 
 ## 1. Analyse (Q1)
@@ -57,7 +58,7 @@ python proto/generate.py
 
 **Serveur — Inventory** ([`grpc_server.py`](../services/inventory/grpc_server.py))
 - Il démarre automatiquement avec `uvicorn main:app --port 8083` et écoute sur **50051**. Le port est configurable avec `INVENTORY_GRPC_PORT`, et `INVENTORY_GRPC_ENABLED=0` le désactive.
-- Il utilise la même base SQLite que l'API REST. La réservation est atomique (`BEGIN IMMEDIATE` : tout ou rien).
+- Il utilise la même base SQLite que l'API REST, **et les mêmes fonctions métier** : [`stock_logic.py`](../services/inventory/stock_logic.py), appelé par les endpoints REST et par le serveur gRPC. La réservation est atomique (`BEGIN IMMEDIATE` : tout ou rien).
 - Chaque appel est journalisé dans la console d'Inventory.
 
 **Client — Orders** ([`inventory_client.py`](../services/orders/inventory_client.py))
@@ -101,7 +102,7 @@ grpcurl -plaintext -proto proto/inventory.proto -d '{"productId":"3","quantity":
 ## 6. Résultats
 
 **Tests automatisés**
-- `services/inventory/tests/test_grpc_server.py` : 10 tests (stock suffisant / insuffisant, produit inconnu, quantité invalide, réservation atomique, libération).
+- `services/inventory/tests/test_grpc_server.py` : 11 tests (stock suffisant / insuffisant, produit inconnu, quantité invalide, réservation atomique, libération, même stock vu en REST et en gRPC).
 - `services/orders/tests/test_inventory_grpc.py` : 3 tests (commande via gRPC, refus sans réservation, Inventory arrêté).
 - Les tests existants passent toujours (Inventory 8/8, Orders 6/6).
 

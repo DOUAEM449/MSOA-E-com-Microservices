@@ -1,7 +1,9 @@
 # LAB 4 — Scénario 1 (gRPC) : partie client Orders et benchmark
 
-**Auteur :** Taha · **Binôme :** Youssef (serveur gRPC dans Inventory)
-**Périmètre :** `services/orders/inventory_client.py`, `services/orders/service.py`, `proto/demo_grpc.py`
+**Responsables du scénario 1 :** Youssef et Taha
+**Implémentation :** contrat, serveur et client gRPC livrés par Youssef dans la PR #11 (`proto/`, `services/inventory/grpc_server.py`, `services/orders/inventory_client.py`).
+**Ce document (Taha) :** analyse du côté client Orders, tests sur les services réels et benchmark REST vs gRPC.
+Analyse Q1, décision Q4 et côté serveur : voir [`proto/README.md`](../../proto/README.md).
 
 ## 1. Services concernés
 
@@ -78,7 +80,17 @@ Sortie complète : [`docs/lab4-evidence/grpc/scenarios.txt`](../lab4-evidence/gr
 
 > **Pourquoi 504 et pas 503 quand Inventory est arrêté ?** Sous Windows, une connexion vers un port fermé n'est refusée qu'après environ 2 s, à cause des retransmissions TCP. Le log Kafka d'Orders le montre aussi : `Connect to 127.0.0.1:9092 failed ... after 2053ms`. La deadline de 2 s expire donc avant que gRPC reçoive le refus, et l'appel finit en `DEADLINE_EXCEEDED` → 504. Sur un système qui refuse la connexion immédiatement, on obtient `UNAVAILABLE` → 503. Dans les deux cas, l'objectif du guide est atteint : erreur claire et rapide, sans crash ni commande fantôme.
 
-**Captures d'écran à insérer :** terminal « gRPC scenarios » (scénarios 1, 2, 3 et 3b) et sortie de `python proto/demo_grpc.py --bench 1000`.
+**Captures d'écran** (Swagger d'Orders, `POST /api/orders`, services réels, 26/11/2026) :
+
+| Commande acceptée → `201` | Stock insuffisant → `409` |
+|---|---|
+| ![201](../lab4-evidence/grpc/screenshots/1-commande-acceptee-201.jpg) | ![409](../lab4-evidence/grpc/screenshots/2-stock-insuffisant-409.jpg) |
+| **Inventory arrêté → `504`** | **Inventory redémarré → `201`** |
+| ![504](../lab4-evidence/grpc/screenshots/3-inventory-arrete-504.jpg) | ![201 après redémarrage](../lab4-evidence/grpc/screenshots/4-inventory-redemarre-201.jpg) |
+
+Pendant la panne, aucune commande n'a été enregistrée : `GET /api/orders?userId=demo-grpc` ne renvoie que la commande du premier scénario ([capture](../lab4-evidence/grpc/screenshots/3b-aucune-commande-pendant-la-panne.jpg)).
+
+Comparaison de bout en bout via `POST /api/orders` (gRPC contre REST) : voir [`lab4-grpc-server-youssef.md`](lab4-grpc-server-youssef.md) § 5.
 
 ## 5. Benchmark REST vs gRPC
 

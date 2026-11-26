@@ -8,7 +8,8 @@ import logging
 import os
 
 import grpc_server
-from database import get_connection, initialize_database
+import stock_logic
+from database import initialize_database
 
 logger = logging.getLogger("uvicorn.error")  # shown in the uvicorn console
 
@@ -94,17 +95,10 @@ class InventoryRequest(BaseModel):
 # =====================================
 # 5. GROUP DUPLICATE PRODUCTS
 # =====================================
+# Business rules are in stock_logic.py, shared with the gRPC server (LAB 4).
 
 def aggregate_items(items):
-    quantities = {}
-
-    for item in items:
-        quantities[item.productId] = (
-            quantities.get(item.productId, 0)
-            + item.quantity
-        )
-
-    return quantities
+    return stock_logic.aggregate((item.productId, item.quantity) for item in items)
 
 
 # =====================================
@@ -120,27 +114,18 @@ def get_inventory(productId: int):
             detail="Invalid product ID"
         )
 
-    conn = get_connection()
-
     try:
-        product = conn.execute(
-            "SELECT * FROM stock WHERE product_id = ?",
-            (productId,)
-        ).fetchone()
+        stock = stock_logic.get_stock(productId)
+    except stock_logic.ProductNotFound:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
 
-        if product is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Product not found"
-            )
-
-        return {
-            "productId": product["product_id"],
-            "stock": product["quantity"]
-        }
-
-    finally:
-        conn.close()
+    return {
+        "productId": productId,
+        "stock": stock
+    }
 
 
 # =====================================
@@ -150,24 +135,7 @@ def get_inventory(productId: int):
 @app.post("/api/inventory/check")
 def check_inventory(request: InventoryRequest):
 
-    quantities = aggregate_items(request.items)
-    conn = get_connection()
-
-    try:
-        for product_id, requested in quantities.items():
-
-            product = conn.execute(
-                "SELECT quantity FROM stock WHERE product_id = ?",
-                (product_id,)
-            ).fetchone()
-
-            if product is None or product["quantity"] < requested:
-                return {"available": False}
-
-        return {"available": True}
-
-    finally:
-        conn.close()
+    return {"available": stock_logic.is_available(aggregate_items(request.items))}
 
 
 # =====================================
@@ -177,59 +145,18 @@ def check_inventory(request: InventoryRequest):
 @app.post("/api/inventory/reserve")
 def reserve_inventory(request: InventoryRequest):
 
-    quantities = aggregate_items(request.items)
-    conn = get_connection()
-
     try:
-        # Start atomic transaction
-        conn.execute("BEGIN IMMEDIATE")
-
-        # Check all products before updating anything
-        for product_id, requested in quantities.items():
-
-            product = conn.execute(
-                "SELECT quantity FROM stock WHERE product_id = ?",
-                (product_id,)
-            ).fetchone()
-
-            if product is None or product["quantity"] < requested:
-
-                conn.execute("ROLLBACK")
-
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Insufficient stock for product {product_id}"
-                )
-
-        # Update all stock quantities
-        for product_id, requested in quantities.items():
-
-            conn.execute("""
-                UPDATE stock
-                SET quantity = quantity - ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE product_id = ?
-            """, (requested, product_id))
-
-        # Confirm transaction
-        conn.execute("COMMIT")
-
-        return {"success": True}
-
-    except HTTPException:
-        raise
-
+        stock_logic.reserve(aggregate_items(request.items))
+    except stock_logic.InsufficientStock as error:
+        raise HTTPException(status_code=409, detail=error.message)
     except Exception:
-        if conn.in_transaction:
-            conn.execute("ROLLBACK")
-
+        logger.exception("Inventory reservation failed")
         raise HTTPException(
             status_code=500,
             detail="Internal inventory error"
         )
 
-    finally:
-        conn.close()
+    return {"success": True}
 
 
 # =====================================
@@ -239,57 +166,18 @@ def reserve_inventory(request: InventoryRequest):
 @app.post("/api/inventory/release")
 def release_inventory(request: InventoryRequest):
 
-    quantities = aggregate_items(request.items)
-    conn = get_connection()
-
     try:
-        conn.execute("BEGIN IMMEDIATE")
-
-        # Check that all products exist
-        for product_id in quantities:
-
-            product = conn.execute(
-                "SELECT product_id FROM stock WHERE product_id = ?",
-                (product_id,)
-            ).fetchone()
-
-            if product is None:
-
-                conn.execute("ROLLBACK")
-
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Product {product_id} not found"
-                )
-
-        # Restore stock quantities
-        for product_id, quantity in quantities.items():
-
-            conn.execute("""
-                UPDATE stock
-                SET quantity = quantity + ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE product_id = ?
-            """, (quantity, product_id))
-
-        conn.execute("COMMIT")
-
-        return {"success": True}
-
-    except HTTPException:
-        raise
-
+        stock_logic.release(aggregate_items(request.items))
+    except stock_logic.ProductNotFound as error:
+        raise HTTPException(status_code=404, detail=error.message)
     except Exception:
-        if conn.in_transaction:
-            conn.execute("ROLLBACK")
-
+        logger.exception("Inventory release failed")
         raise HTTPException(
             status_code=500,
             detail="Internal inventory error"
         )
 
-    finally:
-        conn.close()
+    return {"success": True}
 
 
 # =====================================

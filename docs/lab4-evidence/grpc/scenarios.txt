@@ -15,7 +15,7 @@ Inventory: DOWN
 POST /api/orders (2 x product 3) -> HTTP 504 in 2231 ms
 {"message": "The inventory service timed out."}
 Orders /health: UP
--> aucune commande enregistree pendant la panne (GET /api/orders?userId=demo-grpc : seulement des commandes CANCELLED)
+-> aucune nouvelle commande enregistree pendant la panne (GET /api/orders?userId=demo-grpc : seule la commande du scenario 1 est PENDING_PAYMENT, les autres sont CANCELLED)
 
 Log Orders pendant la panne :
 WARNING inventory_client Inventory gRPC CheckAvailability: deadline exceeded

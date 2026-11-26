@@ -1,0 +1,18 @@
+### run 1
+POST /api/orders, 200 orders per transport (create + cancel, 1 x product 3)
+  transport        mean ms  median ms   p95 ms
+  gRPC  (8084)       46.22      46.95    57.98
+  REST  (8094)       39.55      38.28    52.35
+  difference: REST - gRPC = -6.66 ms per order (0.86x)
+### run 2
+POST /api/orders, 200 orders per transport (create + cancel, 1 x product 3)
+  transport        mean ms  median ms   p95 ms
+  gRPC  (8084)       43.77      43.86    56.52
+  REST  (8094)       40.92      40.15    56.22
+  difference: REST - gRPC = -2.86 ms per order (0.93x)
+### run 3
+POST /api/orders, 200 orders per transport (create + cancel, 1 x product 3)
+  transport        mean ms  median ms   p95 ms
+  gRPC  (8084)       49.06      48.85    65.35
+  REST  (8094)       41.81      40.94    55.86
+  difference: REST - gRPC = -7.25 ms per order (0.85x)

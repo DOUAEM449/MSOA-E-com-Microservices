@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException
+import logging
+import sqlite3
+
+from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 
 from schemas import ShipmentCreate, ShipmentStatusUpdate
@@ -22,8 +25,8 @@ def get_shipment_by_order(order_id: str):
     return shipment
 
 
-@router.post("", status_code=201)
-async def create_shipment(body: ShipmentCreate):
+@router.post("", status_code=201, responses={200: {"description": "Existing shipment"}})
+async def create_shipment(body: ShipmentCreate, response: Response):
     """POST /api/shipments — create a shipment."""
     if not body.orderId or not body.orderId.strip():
         return JSONResponse(status_code=400, content={"message": "orderId is required"})
@@ -40,12 +43,18 @@ async def create_shipment(body: ShipmentCreate):
         "city": body.address.city.strip(),
     }
 
-    shipment, error = await shipping_service.create_shipment(body.orderId.strip(), address_dict)
+    try:
+        shipment, error, created = await shipping_service.create_shipment(body.orderId.strip(), address_dict)
+    except sqlite3.OperationalError:
+        logging.getLogger("uvicorn.error").exception("SQLite unavailable while creating shipment")
+        return JSONResponse(status_code=503, content={"message": "Shipping database is unavailable"})
 
     if error:
         status_code, detail = error
         return JSONResponse(status_code=status_code, content=detail)
 
+    if not created:
+        response.status_code = 200
     return shipment
 
 

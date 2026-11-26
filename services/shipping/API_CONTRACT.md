@@ -52,10 +52,13 @@ Corps requis :
 }
 ```
 
-Succes `201` : objet Shipment avec `status: "PREPARING"`.
+Succes `201` : objet Shipment avec `status: "PREPARING"` pour une nouvelle expedition.
+Succes `200` : objet Shipment existant pour le meme `orderId`, avec son statut courant
+et son numero de suivi d'origine.
 
-La creation exige une commande existante au statut `PAID`. Une expedition duplicate
-pour la meme commande retourne `409`.
+Une nouvelle expedition exige une commande existante au statut `PAID`.
+Une commande absente retourne `404` et une commande non payee retourne `409`.
+Une indisponibilite d'Orders ou de SQLite retourne `503`.
 
 ### `PATCH /api/shipments/{shipmentId}/status`
 

@@ -1,0 +1,18 @@
+LAB 4 - Scenario 1 (gRPC) - console du service Inventory pendant les captures (26/11/2026)
+Inventory demarre avec : python -m uvicorn main:app --port 8083
+
+INFO:     Started server process [9596]
+INFO:     Waiting for application startup.
+INFO:     Inventory gRPC server listening on port 50051
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8083 (Press CTRL+C to quit)
+INFO:     gRPC check_availability OK -> available: true availableQuantity: 8      <- capture 1 : 2 x produit 3
+INFO:     gRPC reserve_stock OK -> success: true                                 <- capture 1 : reservation atomique
+INFO:     gRPC check_availability OK -> availableQuantity: 6                     <- capture 2 : 10000 x produit 3 (available=false)
+INFO:     Shutting down                                                          <- arret volontaire pour la capture 3
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+
+Remarque : pour la capture 2, aucun appel ReserveStock n'apparait. Orders a refuse la
+commande des la reponse available=false de CheckAvailability.
+(Protobuf n'affiche pas les champs a leur valeur par defaut : "available: false" est donc absent de la ligne.)

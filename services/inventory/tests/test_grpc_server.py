@@ -103,3 +103,17 @@ def test_empty_items_rejected(stub):
     with pytest.raises(grpc.RpcError) as error:
         stub.ReserveStock(inventory_pb2.StockRequest(), timeout=2)
     assert error.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+def test_rest_and_grpc_share_the_same_stock(stub, monkeypatch):
+    # LAB4_CONTRACTS.md: REST and gRPC call the same business functions (stock_logic.py).
+    from fastapi.testclient import TestClient
+    import main
+
+    monkeypatch.setenv("INVENTORY_GRPC_ENABLED", "0")  # the fixture already runs a gRPC server
+    with TestClient(main.app) as rest:
+        assert stub.ReserveStock(_items(("3", 3)), timeout=2).success
+        assert rest.get("/api/inventory/3").json()["stock"] == 5
+
+        assert rest.post("/api/inventory/release", json={"items": [{"productId": 3, "quantity": 3}]}).status_code == 200
+        assert _check(stub, "3", 1).availableQuantity == 8

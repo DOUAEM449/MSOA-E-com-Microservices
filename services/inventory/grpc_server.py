@@ -2,20 +2,22 @@
 
 Implements `inventory.InventoryService` from proto/inventory.proto. It runs in the
 same process as the REST API (started from main.py) and uses the same database,
-so stock is consistent whichever interface a client uses. REST stays available
+so stock is consistent whichever interface a client uses. The business rules
+live in stock_logic.py and are shared with the REST endpoints. REST stays available
 for the frontend; Orders uses gRPC.
 """
 import logging
 import os
 import sqlite3
 from concurrent import futures
-from typing import Dict, Optional
+from typing import Optional
 
 import grpc
 
 import database
 import inventory_pb2
 import inventory_pb2_grpc
+import stock_logic
 
 logger = logging.getLogger("uvicorn.error")  # shown in the uvicorn console
 
@@ -45,88 +47,38 @@ def _parse_quantity(quantity: int) -> int:
     return quantity
 
 
-def _aggregate(items) -> Dict[int, int]:
+def _quantities(items):
     if not items:
         raise _RpcError(grpc.StatusCode.INVALID_ARGUMENT, "items must not be empty")
-    quantities: Dict[int, int] = {}
-    for item in items:
-        product_id = _parse_product_id(item.productId)
-        quantities[product_id] = quantities.get(product_id, 0) + _parse_quantity(item.quantity)
-    return quantities
-
-
-def _stock_of(conn: sqlite3.Connection, product_id: int) -> Optional[int]:
-    row = conn.execute(
-        "SELECT quantity FROM stock WHERE product_id = ?", (product_id,)
-    ).fetchone()
-    return None if row is None else row["quantity"]
+    return stock_logic.aggregate(
+        (_parse_product_id(item.productId), _parse_quantity(item.quantity)) for item in items
+    )
 
 
 def check_availability(product_id_raw: str, quantity: int) -> inventory_pb2.AvailabilityResponse:
     product_id = _parse_product_id(product_id_raw)
     quantity = _parse_quantity(quantity)
-    conn = database.get_connection()
     try:
-        stock = _stock_of(conn, product_id)
-    finally:
-        conn.close()
-    if stock is None:
-        raise _RpcError(grpc.StatusCode.NOT_FOUND, f"Product {product_id} not found")
+        stock = stock_logic.get_stock(product_id)
+    except stock_logic.ProductNotFound as error:
+        raise _RpcError(grpc.StatusCode.NOT_FOUND, error.message)
     return inventory_pb2.AvailabilityResponse(available=stock >= quantity, availableQuantity=stock)
 
 
 def reserve_stock(items) -> inventory_pb2.StockResponse:
-    quantities = _aggregate(items)
-    conn = database.get_connection()
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        for product_id, requested in quantities.items():
-            stock = _stock_of(conn, product_id)
-            if stock is None or stock < requested:
-                conn.execute("ROLLBACK")
-                raise _RpcError(
-                    grpc.StatusCode.FAILED_PRECONDITION,
-                    f"Insufficient stock for product {product_id}",
-                )
-        for product_id, requested in quantities.items():
-            conn.execute(
-                "UPDATE stock SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP "
-                "WHERE product_id = ?",
-                (requested, product_id),
-            )
-        conn.execute("COMMIT")
-        return inventory_pb2.StockResponse(success=True)
-    except sqlite3.Error:
-        if conn.in_transaction:
-            conn.execute("ROLLBACK")
-        raise
-    finally:
-        conn.close()
+        stock_logic.reserve(_quantities(items))
+    except stock_logic.InsufficientStock as error:
+        raise _RpcError(grpc.StatusCode.FAILED_PRECONDITION, error.message)
+    return inventory_pb2.StockResponse(success=True)
 
 
 def release_stock(items) -> inventory_pb2.StockResponse:
-    quantities = _aggregate(items)
-    conn = database.get_connection()
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        for product_id in quantities:
-            if _stock_of(conn, product_id) is None:
-                conn.execute("ROLLBACK")
-                raise _RpcError(grpc.StatusCode.NOT_FOUND, f"Product {product_id} not found")
-        for product_id, quantity in quantities.items():
-            conn.execute(
-                "UPDATE stock SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP "
-                "WHERE product_id = ?",
-                (quantity, product_id),
-            )
-        conn.execute("COMMIT")
-        return inventory_pb2.StockResponse(success=True)
-    except sqlite3.Error:
-        if conn.in_transaction:
-            conn.execute("ROLLBACK")
-        raise
-    finally:
-        conn.close()
+        stock_logic.release(_quantities(items))
+    except stock_logic.ProductNotFound as error:
+        raise _RpcError(grpc.StatusCode.NOT_FOUND, error.message)
+    return inventory_pb2.StockResponse(success=True)
 
 
 class InventoryServicer(inventory_pb2_grpc.InventoryServiceServicer):

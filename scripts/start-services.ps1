@@ -1,3 +1,4 @@
+
 param(
     [switch]$Setup
 )
@@ -9,12 +10,13 @@ $logDirectory = Join-Path $repoRoot "logs"
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 
 $services = @(
-    @{ Name = "auth"; Port = 8081; Check = "/" },
-    @{ Name = "catalog"; Port = 8082; Check = "/products" },
+    @{ Name = "auth";      Port = 8081; Check = "/" },
+    @{ Name = "catalog";   Port = 8082; Check = "/products" },
     @{ Name = "inventory"; Port = 8083; Check = "/" },
-    @{ Name = "orders"; Port = 8084; Check = "/health" },
-    @{ Name = "payments"; Port = 8085; Check = "/health" },
-    @{ Name = "shipping"; Port = 8086; Check = "/health" }
+    @{ Name = "orders";    Port = 8084; Check = "/health" },
+    @{ Name = "payments";  Port = 8085; Check = "/health" },
+    @{ Name = "shipping";  Port = 8086; Check = "/health" },
+    @{ Name = "analytics"; Port = 8087; Check = "/health" }
 )
 
 if ($Setup) {
@@ -22,19 +24,23 @@ if ($Setup) {
 }
 
 $started = @()
+
 foreach ($service in $services) {
     $servicePath = Join-Path $repoRoot "services\$($service.Name)"
     $python = Join-Path $servicePath ".venv\Scripts\python.exe"
+
     if (-not (Test-Path $python)) {
         throw "Environment for $($service.Name) is missing. Run .\scripts\setup-services.ps1 first, or use -Setup."
     }
 
     $alreadyListening = $false
     $client = [System.Net.Sockets.TcpClient]::new()
+
     try {
         $connect = $client.BeginConnect("127.0.0.1", $service.Port, $null, $null)
         $alreadyListening = $connect.AsyncWaitHandle.WaitOne(250) -and $client.Connected
-    } finally {
+    }
+    finally {
         $client.Dispose()
     }
 
@@ -48,8 +54,10 @@ foreach ($service in $services) {
         "--host", "127.0.0.1",
         "--port", "$($service.Port)"
     )
+
     $stdoutLog = Join-Path $logDirectory "$($service.Name).out.log"
     $stderrLog = Join-Path $logDirectory "$($service.Name).err.log"
+
     $process = Start-Process `
         -FilePath $python `
         -ArgumentList $arguments `
@@ -58,27 +66,33 @@ foreach ($service in $services) {
         -RedirectStandardError $stderrLog `
         -WindowStyle Hidden `
         -PassThru
+
     $started += $service.Name
     Write-Host "Started $($service.Name) (PID $($process.Id)) on http://127.0.0.1:$($service.Port)"
 }
 
 Write-Host "Waiting for APIs to respond..."
+
 foreach ($service in $services) {
     $url = "http://127.0.0.1:$($service.Port)$($service.Check)"
     $ready = $false
+
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
         try {
             Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2 | Out-Null
             $ready = $true
             break
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 1
         }
     }
 
     if (-not $ready) {
+        $stderrLog = Join-Path $logDirectory "$($service.Name).err.log"
         throw "$($service.Name) did not respond at $url. Check $stderrLog for its startup error."
     }
+
     Write-Host "OK  $($service.Name): $url"
 }
 

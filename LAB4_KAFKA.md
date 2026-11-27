@@ -32,13 +32,13 @@ Les événements publiés utilisent une structure JSON commune contenant notamme
 
 Les événements implémentés sont :
 
-| Événement | Service émetteur | Description |
-|---|---|---|
-| `OrderCreated` | Orders | Une commande a été créée. |
-| `OrderStatusChanged` | Orders | Le statut d'une commande a changé. |
-| `PaymentCompleted` | Payments | Un paiement a été effectué avec succès. |
-| `ShipmentCreated` | Shipping | Une expédition a été créée. |
-| `ShipmentStatusChanged` | Shipping | Le statut d'une expédition a changé. |
+| Événement               | Service émetteur | Description                             |
+| ----------------------- | ---------------- | --------------------------------------- |
+| `OrderCreated`          | Orders           | Une commande a été créée.               |
+| `OrderStatusChanged`    | Orders           | Le statut d'une commande a changé.      |
+| `PaymentCompleted`      | Payments         | Un paiement a été effectué avec succès. |
+| `ShipmentCreated`       | Shipping         | Une expédition a été créée.             |
+| `ShipmentStatusChanged` | Shipping         | Le statut d'une expédition a changé.    |
 
 La clé Kafka utilisée est `orderId`, afin de regrouper les événements d'une même commande dans la même partition.
 
@@ -73,12 +73,12 @@ L'identifiant `eventId` permet d'éviter l'enregistrement plusieurs fois du mêm
 
 ### Endpoints disponibles
 
-| Méthode | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Vérifie l'état du service. |
-| GET | `/api/analytics/summary` | Retourne les statistiques globales. |
-| GET | `/api/analytics/events` | Retourne les événements enregistrés. |
-| POST | `/api/analytics/replay` | Déclenche une demande de rejeu des événements. |
+| Méthode | Endpoint                 | Description                                    |
+| ------- | ------------------------ | ---------------------------------------------- |
+| GET     | `/health`                | Vérifie l'état du service.                     |
+| GET     | `/api/analytics/summary` | Retourne les statistiques globales.            |
+| GET     | `/api/analytics/events`  | Retourne les événements enregistrés.           |
+| POST    | `/api/analytics/replay`  | Déclenche une demande de rejeu des événements. |
 
 ## 6. Configuration et lancement
 
@@ -125,14 +125,14 @@ Les vérifications effectuées comprennent :
 
 Lors d'une vérification manuelle, le service Analytics a retourné les statistiques suivantes :
 
-| Type d'événement | Nombre |
-|---|---:|
-| OrderCreated | 12 |
-| OrderStatusChanged | 7 |
-| PaymentCompleted | 5 |
-| ShipmentCreated | 1 |
-| ShipmentStatusChanged | 1 |
-| **Total** | **26** |
+| Type d'événement      | Nombre |
+| --------------------- | -----: |
+| OrderCreated          |     12 |
+| OrderStatusChanged    |      7 |
+| PaymentCompleted      |      5 |
+| ShipmentCreated       |      1 |
+| ShipmentStatusChanged |      1 |
+| **Total**             | **26** |
 
 Ces valeurs correspondent à une exécution de test et peuvent évoluer lors de nouvelles opérations.
 
@@ -145,3 +145,172 @@ L'intégration de Kafka permet aux microservices Orders, Payments et Shipping de
 Le service Analytics centralise ces événements et fournit des endpoints permettant de consulter les données et les statistiques.
 
 Cette réalisation illustre l'utilisation d'une architecture événementielle dans une application e-commerce composée de microservices.
+
+### Test pratique : Kafka Retention et reprise du Consumer
+
+Un test de rétention a été réalisé afin de vérifier que les événements Kafka restent disponibles lorsque le service Analytics est temporairement arrêté.
+
+**Étapes du test :**
+
+1. Arrêt du service Analytics sur le port 8087, sans arrêter le broker Kafka.
+2. Création de deux nouvelles commandes et réalisation de leurs paiements.
+3. Vérification du Consumer Group `analytics-service` pendant l'arrêt :
+   - Partition 0 : Lag = 3
+   - Partition 1 : Lag = 3
+   - Partition 2 : Lag = 0
+   - Lag total = 6 événements.
+4. Redémarrage du service Analytics.
+5. Vérification de la reprise de consommation :
+   - Partition 0 : Lag = 0
+   - Partition 1 : Lag = 0
+   - Partition 2 : Lag = 0
+6. Vérification du résumé Analytics après reprise.
+
+**Résultats obtenus :**
+
+- Total Events : 35 → 41
+- Total Orders Tracked : 16 → 18
+- PaymentCompleted : 8 → 10
+- Consumer Lag : 6 → 0
+
+**Conclusion :**
+
+Le test confirme que Kafka conserve les événements produits pendant l'indisponibilité temporaire du service Analytics. Après son redémarrage, le consumer reprend la consommation à partir des offsets enregistrés et traite les six événements en attente. Le lag revient à zéro, ce qui confirme la reprise correcte du traitement.
+
+La configuration `retention.ms = 604800000` correspond à une durée de rétention configurée de 7 jours.
+
+## Q5b — Analytics Consumer (Owner: Amal)
+
+### 1. Architecture et configuration du Consumer
+
+Le service Analytics consomme les événements publiés dans Kafka par les microservices Orders, Payments et Shipping.
+
+Configuration utilisée :
+
+| Paramètre          | Valeur            |
+| ------------------ | ----------------- |
+| Bootstrap Server   | localhost:9092    |
+| Topic              | ecommerce-events  |
+| Consumer Group     | analytics-service |
+| Auto Offset Reset  | earliest          |
+| Enable Auto Commit | false             |
+| Port Analytics     | 8087              |
+
+Le Consumer utilise les commits manuels après le traitement des événements afin de contrôler la progression des offsets.
+
+### 2. Gestion des offsets et rétention
+
+La rétention du topic `ecommerce-events` est configurée à 604800000 ms, soit 7 jours.
+
+Un test pratique a été effectué :
+
+- Arrêt temporaire du service Analytics.
+- Création et paiement de deux commandes.
+- Observation de six événements en attente dans Kafka (Consumer Lag = 6).
+- Redémarrage du service Analytics.
+- Reprise de la consommation et retour du Consumer Lag à zéro.
+
+Ce test confirme que les événements produits pendant l'indisponibilité d'Analytics ont été conservés dans Kafka et traités après le redémarrage.
+
+### 3. Idempotence
+
+Le service utilise `event_id` comme clé primaire dans la table des événements.
+
+L'insertion utilise `INSERT OR IGNORE`, ce qui empêche l'enregistrement multiple d'un événement ayant le même identifiant.
+
+Cette approche protège les statistiques contre le double comptage lorsqu'un événement est retraité.
+
+### 4. Replay
+
+Un endpoint permet de demander le rejeu des événements :
+
+`POST /api/analytics/replay`
+
+Le rejeu permet de relancer le traitement des événements du topic. L'idempotence basée sur `event_id` évite de dupliquer les événements déjà enregistrés.
+
+Le endpoint a été testé et la réponse a confirmé que la demande de replay a été acceptée. Les totaux sont restés identiques après le test précédent.
+
+### 5. API Analytics
+
+Les endpoints exposés sont :
+
+| Méthode | Endpoint                 | Description                                     |
+| ------- | ------------------------ | ----------------------------------------------- |
+| GET     | `/health`                | Vérification de disponibilité                   |
+| GET     | `/api/analytics/summary` | Statistiques globales                           |
+| GET     | `/api/analytics/events`  | Liste des événements avec pagination et filtres |
+| POST    | `/api/analytics/replay`  | Demande de rejeu                                |
+
+### 6. Tests automatisés
+
+Les tests couvrent notamment :
+
+- L'initialisation de la base de données.
+- L'insertion et l'idempotence des événements.
+- Le calcul des statistiques.
+- La pagination et le filtrage des événements.
+- Les endpoints API.
+- Le comportement de l'endpoint Replay.
+
+Résultat obtenu : **14 tests passed**.
+
+### 7. Résultat final
+
+Après le test de rétention et le redémarrage du Consumer :
+
+- Total Events : 41
+- Total Orders Tracked : 18
+- Consumer Lag : 0 sur les trois partitions.
+
+Le service Analytics est intégré au script `scripts/start-services.ps1` et démarre sur le port 8087 avec le contrôle de santé `/health`.
+
+**Conclusion :** Le service Analytics assure la consommation des événements Kafka, leur stockage idempotent, la consultation des statistiques et la reprise du traitement après une interruption temporaire.
+
+### Q5b – Kafka Producers : Intégration et validation
+
+**1. Producteurs Kafka (Producers)**
+
+Les microservices Orders, Payments et Shipping publient des événements métier dans le topic Kafka `ecommerce-events`.
+
+La publication des événements intervient après la réussite des opérations métier et l'enregistrement des données dans les bases de données.
+
+**2. Événements publiés**
+
+Le test d'intégration a confirmé la réception des événements suivants :
+
+- **Orders :** `OrderCreated`, `OrderStatusChanged`
+- **Payments :** `PaymentCompleted`
+- **Shipping :** `ShipmentCreated`, `ShipmentStatusChanged`
+
+**3. Structure des événements (Event Schema)**
+
+Chaque événement utilise une structure JSON commune (_Event Envelope_) contenant les champs suivants :
+
+- `eventId` : identifiant unique de l'événement.
+- `eventType` : type de l'événement.
+- `source` : microservice à l'origine de l'événement.
+- `occurredAt` : date et heure de création de l'événement au format UTC.
+- `orderId` : identifiant de la commande associée.
+- `data` : données spécifiques à l'événement.
+
+La clé du message Kafka est définie à partir de `orderId`. Ainsi, les événements associés à une même commande utilisent la même clé de partitionnement.
+
+**4. Configuration du topic Kafka**
+
+Le topic `ecommerce-events` possède la configuration suivante :
+
+- Nombre de partitions : **3**.
+- Facteur de réplication : **1**.
+- Durée de rétention : **7 jours** (`604800000 ms`).
+
+**5. Résultats du test d'intégration**
+
+Un scénario réel a été exécuté à travers l'application e-commerce : création d'une commande, réalisation du paiement et suivi du processus d'expédition.
+
+Les événements générés ont été observés à l'aide d'un consommateur Kafka en ligne de commande, connecté au broker `localhost:9092`.
+
+Le consommateur a confirmé la réception de tous les types d'événements attendus, notamment la création des commandes, la confirmation des paiements, les changements de statut des commandes et le cycle de vie des expéditions.
+
+Les messages affichés ont également permis de vérifier la présence des champs de l'enveloppe JSON commune ainsi que l'utilisation de `orderId` comme clé des messages Kafka.
+
+Des captures d'écran du consommateur Kafka et du déroulement du scénario dans l'application e-commerce sont présentées comme preuves de cette intégration.

@@ -20,6 +20,8 @@ $services = @(
 if (Test-Path (Join-Path $repoRoot "services\analytics\main.py")) {
     $services += @{ Name = "analytics"; Port = 8087; Check = "/health" }
 }
+# Lab 5: the API Gateway starts last, once the services it routes to are up.
+$services += @{ Name = "api-gateway"; Port = 8080; Check = "/health" }
 
 if ($Setup) {
     & (Join-Path $PSScriptRoot "setup-services.ps1")
@@ -86,4 +88,4 @@ foreach ($service in $services) {
     Write-Host "OK  $($service.Name): $url"
 }
 
-Write-Host "All service APIs are responding. Open the frontend at http://localhost:5173."
+Write-Host "All service APIs are responding. Gateway: http://127.0.0.1:8080. Open the frontend at http://localhost:5173."

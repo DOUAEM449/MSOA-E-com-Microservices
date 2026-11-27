@@ -6,6 +6,8 @@ $services = @("auth", "catalog", "inventory", "orders", "payments", "shipping")
 if (Test-Path (Join-Path $repoRoot "services\analytics\requirements.txt")) {
     $services += "analytics"
 }
+# Lab 5: the API Gateway (single entry point on 8080).
+$services += "api-gateway"
 $requiredModules = @{
     auth = @("fastapi", "uvicorn", "pydantic", "bcrypt")
     catalog = @("fastapi", "uvicorn", "pydantic")
@@ -14,6 +16,7 @@ $requiredModules = @{
     payments = @("fastapi", "uvicorn", "httpx", "pydantic", "pika", "confluent_kafka")
     shipping = @("fastapi", "uvicorn", "httpx", "pydantic", "pika", "confluent_kafka")
     analytics = @("fastapi", "uvicorn", "pydantic", "confluent_kafka")
+    "api-gateway" = @("fastapi", "uvicorn", "httpx", "user_agents")
 }
 
 & py -3.12 --version
